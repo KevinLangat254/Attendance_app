@@ -1,0 +1,15 @@
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from . import views
+
+router = DefaultRouter()
+router.register(r"users", views.UserViewSet)
+router.register(r"programs", views.ProgramViewSet)
+router.register(r"enrollments", views.EnrollmentViewSet)
+router.register(r"units", views.UnitViewSet)
+router.register(r"sessions", views.SessionViewSet)
+router.register(r"attendance", views.AttendanceViewSet)
+
+urlpatterns = [
+    path("api/", include(router.urls)),
+]

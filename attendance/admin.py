@@ -1,3 +1,4 @@
 from django.contrib import admin
+from .models import User, Program, Enrollment, Unit, Session, Attendance
 
-# Register your models here.
+admin.site.register([User, Program, Enrollment, Unit, Session, Attendance])

@@ -1,0 +1,53 @@
+from rest_framework import serializers
+from .models import User, Program, Enrollment, Unit, Session, Attendance
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "is_teacher", "is_student"]
+
+
+class ProgramSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Program
+        fields = ["id", "course", "department"]
+
+
+class EnrollmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Enrollment
+        fields = ["id", "student", "program", "date_enrolled", "is_active"]
+
+    def validate_student(self, user):
+        if not user.is_student:
+            raise serializers.ValidationError("This user is not a student.")
+        return user
+
+
+class UnitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Unit
+        fields = ["id", "name", "unit_code", "semester", "program", "teacher"]
+
+    def validate_teacher(self, user):
+        if not user.is_teacher:
+            raise serializers.ValidationError("This user is not a teacher.")
+        return user
+
+
+class SessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Session
+        fields = ["id", "unit", "start_time", "end_time", "latitude", "longitude"]
+
+
+class AttendanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Attendance
+        fields = ["id", "student", "session", "timestamp", "status"]
+
+    def validate_student(self, user):
+        if not user.is_student:
+            raise serializers.ValidationError("This user is not a student.")
+        return user
