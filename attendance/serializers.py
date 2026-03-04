@@ -11,7 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
 class ProgramSerializer(serializers.ModelSerializer):
     class Meta:
         model = Program
-        fields = ["id", "course", "department"]
+        fields = ["id", "course", "department", "duration_years", "faculty"]
 
 
 class EnrollmentSerializer(serializers.ModelSerializer):
@@ -28,7 +28,7 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 class UnitSerializer(serializers.ModelSerializer):
     class Meta:
         model = Unit
-        fields = ["id", "name", "unit_code", "semester", "program", "teacher"]
+        fields = ["id", "name", "unit_code", "semester", "year","program", "teacher"]
 
     def validate_teacher(self, user):
         if not user.is_teacher:

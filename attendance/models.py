@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.core.exceptions import ValidationError
 
 
 class User(AbstractUser):
@@ -26,6 +27,7 @@ class Program(models.Model):
 
     course     = models.CharField(max_length=255)
     department = models.CharField(max_length=255)
+    duration_years = models.PositiveSmallIntegerField(default=4)
     faculty    = models.CharField(
         max_length=10,
         choices=Faculty.choices,
@@ -68,6 +70,35 @@ class Enrollment(models.Model):
 
 
 class Unit(models.Model):
+    name      = models.CharField(max_length=255)
+    unit_code = models.CharField(max_length=20, unique=True)
+    year = models.PositiveSmallIntegerField(default=1)
+    semester  = models.PositiveSmallIntegerField()
+    program   = models.ForeignKey(Program, on_delete=models.CASCADE, related_name="units")
+    teacher   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name="taught_units",
+                                  limit_choices_to={"is_teacher": True})
+
+    def clean(self):
+        # Validate year does not exceed program duration
+        if self.year > self.program.duration_years:
+            raise ValidationError(
+                f"Year {self.year} exceeds the duration of "
+                f"'{self.program.course}' ({self.program.duration_years} years)."
+            )
+        # Validate semester is consistent with year (each year has 2 semesters)
+        expected_semesters = [self.year * 2 - 1, self.year * 2]
+        if self.semester not in expected_semesters:
+            raise ValidationError(
+                f"Semester {self.semester} is inconsistent with Year {self.year}. "
+                f"Expected {expected_semesters[0]} or {expected_semesters[1]}."
+            )
+
+    class Meta:
+        ordering = ["year", "semester", "unit_code"]
+
+    def __str__(self):
+        return f"[{self.unit_code}] {self.name} — Year {self.year} Sem {self.semester}"
     """
     A course/unit within a Program, taught by a Teacher.
     Maps to the UNIT entity in the ERD.
