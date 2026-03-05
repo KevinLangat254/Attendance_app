@@ -1,6 +1,16 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from rest_framework.authtoken.models import Token
+from django.conf import settings
+
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_auth_token(sender, instance=None, created=False, **kwargs):
+    if created:
+        Token.objects.create(user=instance)
 
 
 class User(AbstractUser):
@@ -25,10 +35,10 @@ class Program(models.Model):
         FOST   = "FoST",   "Faculty of Science and Technology"
         FOSST  = "FoSST",  "Faculty of Social Sciences and Technology"
 
-    course     = models.CharField(max_length=255)
-    department = models.CharField(max_length=255)
+    course         = models.CharField(max_length=255)
+    department     = models.CharField(max_length=255)
     duration_years = models.PositiveSmallIntegerField(default=4)
-    faculty    = models.CharField(
+    faculty        = models.CharField(
         max_length=10,
         choices=Faculty.choices,
         default=Faculty.FOCIT,
@@ -36,15 +46,15 @@ class Program(models.Model):
 
     class Meta:
         ordering = ["faculty", "course"]
-        unique_together = ("course", "faculty")  # prevents duplicate program names within the same faculty
+        unique_together = ("course", "faculty")
 
     def __str__(self):
         return f"{self.course} ({self.get_faculty_display()})"
 
+
 class Enrollment(models.Model):
     """
     Junction table linking a Student (User) to a Program.
-    Maps to the ENROLLMENT entity in the ERD (has_students / enrolled_as).
     """
     student = models.ForeignKey(
         User,
@@ -58,10 +68,9 @@ class Enrollment(models.Model):
         related_name="enrollments",
     )
     date_enrolled = models.DateField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)
+    is_active     = models.BooleanField(default=True)
 
     class Meta:
-        # A student can only be enrolled in a program once
         unique_together = ("student", "program")
         ordering = ["-date_enrolled"]
 
@@ -70,23 +79,34 @@ class Enrollment(models.Model):
 
 
 class Unit(models.Model):
+    """
+    A course/unit within a Program, taught by a Teacher.
+    Maps to the UNIT entity in the ERD.
+    """
     name      = models.CharField(max_length=255)
     unit_code = models.CharField(max_length=20, unique=True)
-    year = models.PositiveSmallIntegerField(default=1)
+    year      = models.PositiveSmallIntegerField(default=1)
     semester  = models.PositiveSmallIntegerField()
-    program   = models.ForeignKey(Program, on_delete=models.CASCADE, related_name="units")
-    teacher   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
-                                  related_name="taught_units",
-                                  limit_choices_to={"is_teacher": True})
+    program   = models.ForeignKey(
+        Program,
+        on_delete=models.CASCADE,
+        related_name="units",
+    )
+    teacher   = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="taught_units",
+        limit_choices_to={"is_teacher": True},
+    )
 
     def clean(self):
-        # Validate year does not exceed program duration
         if self.year > self.program.duration_years:
             raise ValidationError(
                 f"Year {self.year} exceeds the duration of "
                 f"'{self.program.course}' ({self.program.duration_years} years)."
             )
-        # Validate semester is consistent with year (each year has 2 semesters)
         expected_semesters = [self.year * 2 - 1, self.year * 2]
         if self.semester not in expected_semesters:
             raise ValidationError(
@@ -99,51 +119,23 @@ class Unit(models.Model):
 
     def __str__(self):
         return f"[{self.unit_code}] {self.name} — Year {self.year} Sem {self.semester}"
-    """
-    A course/unit within a Program, taught by a Teacher.
-    Maps to the UNIT entity in the ERD.
-    """
-    name = models.CharField(max_length=255)
-    unit_code = models.CharField(max_length=20, unique=True)
-    semester = models.PositiveSmallIntegerField()
-    program = models.ForeignKey(
-        Program,
-        on_delete=models.CASCADE,
-        related_name="units",
-    )
-    teacher = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="taught_units",
-        limit_choices_to={"is_teacher": True},
-    )
-
-    class Meta:
-        ordering = ["semester", "unit_code"]
-
-    def __str__(self):
-        return f"[{self.unit_code}] {self.name}"
 
 
 class Session(models.Model):
     """
     A single scheduled class occurrence for a Unit.
     Stores the geofence anchor (lat/long) for location-based check-in.
-    Maps to the SESSION entity in the ERD.
     """
-    unit = models.ForeignKey(
+    unit          = models.ForeignKey(
         Unit,
         on_delete=models.CASCADE,
         related_name="sessions",
     )
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
-
-    # Geofencing anchor point
-    latitude = models.FloatField()
-    longitude = models.FloatField()
+    start_time    = models.DateTimeField()
+    end_time      = models.DateTimeField()
+    latitude      = models.FloatField()
+    longitude     = models.FloatField()
+    radius_metres = models.PositiveIntegerField(default=50)
 
     class Meta:
         ordering = ["-start_time"]
@@ -155,35 +147,33 @@ class Session(models.Model):
 class Attendance(models.Model):
     """
     Records whether a student attended a specific Session.
-    Maps to the ATTENDANCE entity in the ERD.
     """
 
     class Status(models.TextChoices):
         PRESENT = "PRESENT", "Present"
-        ABSENT = "ABSENT", "Absent"
-        LATE = "LATE", "Late"
+        ABSENT  = "ABSENT",  "Absent"
+        LATE    = "LATE",    "Late"
         EXCUSED = "EXCUSED", "Excused"
 
-    student = models.ForeignKey(
+    student   = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name="attendance_records",
         limit_choices_to={"is_student": True},
     )
-    session = models.ForeignKey(
+    session   = models.ForeignKey(
         Session,
         on_delete=models.CASCADE,
         related_name="attendance_records",
     )
     timestamp = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(
+    status    = models.CharField(
         max_length=10,
         choices=Status.choices,
         default=Status.ABSENT,
     )
 
     class Meta:
-        # A student can only have one attendance record per session
         unique_together = ("student", "session")
         ordering = ["-timestamp"]
 
