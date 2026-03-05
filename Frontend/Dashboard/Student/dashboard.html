@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MMU Attendance — Student Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:       #00C37A;
+      --green-dark:  #009F63;
+      --green-dim:   rgba(0,195,122,0.1);
+      --navy:        #0B1C2C;
+      --navy-mid:    #112236;
+      --navy-light:  #1A3352;
+      --navy-card:   #0F2030;
+      --white:       #F4F8FB;
+      --muted:       #7A97B0;
+      --error:       #FF5C5C;
+      --warning:     #FFB347;
+      --sidebar-w:   260px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--navy);
+      color: var(--white);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--navy-mid);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+      transition: transform 0.3s;
+    }
+
+    .sidebar-brand {
+      padding: 1.8rem 1.5rem 1.2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .sidebar-brand .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--green-dim);
+      border: 1px solid rgba(0,195,122,0.2);
+      border-radius: 2rem;
+      padding: 0.3rem 0.8rem;
+      font-size: 0.72rem;
+      color: var(--green);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+    }
+
+    .sidebar-brand .badge span {
+      width: 5px; height: 5px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.4; transform:scale(0.8); }
+    }
+
+    .sidebar-brand h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .sidebar-brand p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
+    .sidebar-user {
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .avatar {
+      width: 38px; height: 38px;
+      background: var(--green-dim);
+      border: 1px solid rgba(0,195,122,0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--green);
+      flex-shrink: 0;
+    }
+
+    .user-info .name {
+      font-size: 0.88rem;
+      font-weight: 500;
+    }
+
+    .user-info .role {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 1rem 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .nav-label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 0.8rem 0.7rem 0.4rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.7rem 0.9rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: var(--muted);
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .nav-item svg { flex-shrink: 0; }
+
+    .nav-item:hover {
+      background: var(--navy-light);
+      color: var(--white);
+    }
+
+    .nav-item.active {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(0,195,122,0.15);
+    }
+
+    .nav-item .badge-count {
+      margin-left: auto;
+      background: var(--green);
+      color: var(--navy);
+      font-size: 0.68rem;
+      font-weight: 700;
+      border-radius: 1rem;
+      padding: 0.1rem 0.5rem;
+    }
+
+    .sidebar-footer {
+      padding: 1rem 0.8rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .btn-logout {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      background: transparent;
+      border: none;
+      border-radius: 0.5rem;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-logout:hover {
+      background: rgba(255,92,92,0.1);
+      color: var(--error);
+    }
+
+    /* ── MAIN CONTENT ── */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--navy-mid);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .topbar-left h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .topbar-left p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .time-display {
+      text-align: right;
+    }
+
+    .time-display .time {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .time-display .date {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* ── CONTENT ── */
+    .content {
+      padding: 2rem;
+      flex: 1;
+    }
+
+    /* ── STAT CARDS ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--navy-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 0.8rem;
+      padding: 1.4rem;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.5s ease forwards;
+      opacity: 0;
+    }
+
+    .stat-card:nth-child(1) { animation-delay: 0.1s; }
+    .stat-card:nth-child(2) { animation-delay: 0.2s; }
+    .stat-card:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes fadeUp {
+      to { opacity:1; transform:translateY(0); }
+      from { opacity:0; transform:translateY(16px); }
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+
+    .stat-card.green::before  { background: var(--green); }
+    .stat-card.blue::before   { background: #4A9EFF; }
+    .stat-card.orange::before { background: var(--warning); }
+
+    .stat-card-icon {
+      width: 36px; height: 36px;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.8rem;
+    }
+
+    .stat-card.green  .stat-card-icon { background: var(--green-dim); color: var(--green); }
+    .stat-card.blue   .stat-card-icon { background: rgba(74,158,255,0.1); color: #4A9EFF; }
+    .stat-card.orange .stat-card-icon { background: rgba(255,179,71,0.1); color: var(--warning); }
+
+    .stat-card-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-card-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .section-header h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .section-header .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0.4rem;
+      padding: 0.4rem 0.8rem;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .section-header .refresh-btn:hover {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    /* ── SESSION CARDS ── */
+    .sessions-grid {
+      display: grid;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .session-card {
+      background: var(--navy-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 0.8rem;
+      padding: 1.4rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: center;
+      animation: fadeUp 0.5s ease forwards;
+      opacity: 0;
+      transition: border-color 0.2s;
+    }
+
+    .session-card:hover {
+      border-color: rgba(0,195,122,0.2);
+    }
+
+    .session-card.marked {
+      border-color: rgba(0,195,122,0.3);
+      background: rgba(0,195,122,0.04);
+    }
+
+    .session-unit {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+
+    .session-code {
+      display: inline-block;
+      background: var(--green-dim);
+      color: var(--green);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 0.2rem 0.6rem;
+      border-radius: 0.3rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .session-meta {
+      display: flex;
+      gap: 1.2rem;
+      flex-wrap: wrap;
+    }
+
+    .session-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .session-status {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 0.7rem;
+      border-radius: 2rem;
+    }
+
+    .session-status.active {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(0,195,122,0.2);
+    }
+
+    .session-status.active span {
+      width: 5px; height: 5px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .session-status.marked {
+      background: rgba(74,158,255,0.1);
+      color: #4A9EFF;
+      border: 1px solid rgba(74,158,255,0.2);
+    }
+
+    .btn-mark {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.2rem;
+      background: var(--green);
+      color: var(--navy);
+      border: none;
+      border-radius: 0.5rem;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-mark:hover  { background: var(--green-dark); }
+    .btn-mark:active { transform: scale(0.97); }
+
+    .btn-mark:disabled {
+      background: var(--navy-light);
+      color: var(--muted);
+      cursor: not-allowed;
+    }
+
+    .btn-mark.loading {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    /* ── ATTENDANCE HISTORY TABLE ── */
+    .table-wrap {
+      background: var(--navy-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 0.8rem;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      padding: 0.9rem 1.2rem;
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.02);
+    }
+
+    tbody td {
+      padding: 0.9rem 1.2rem;
+      font-size: 0.85rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 2rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-pill.present { background: var(--green-dim); color: var(--green); }
+    .status-pill.absent  { background: rgba(255,92,92,0.1); color: var(--error); }
+    .status-pill.late    { background: rgba(255,179,71,0.1); color: var(--warning); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--navy-light);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0.7rem;
+      padding: 1rem 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-size: 0.88rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transform: translateY(4rem);
+      opacity: 0;
+      transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 999;
+      max-width: 340px;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success { border-color: rgba(0,195,122,0.3); }
+    .toast.error   { border-color: rgba(255,92,92,0.3); }
+
+    .toast-icon {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .toast.success .toast-icon { background: var(--green-dim); color: var(--green); }
+    .toast.error   .toast-icon { background: rgba(255,92,92,0.1); color: var(--error); }
+
+    .toast-body .toast-title { font-weight: 600; }
+    .toast-body .toast-msg   { font-size: 0.8rem; color: var(--muted); margin-top: 0.15rem; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+
+    .empty-state svg {
+      margin-bottom: 1rem;
+      opacity: 0.3;
+    }
+
+    .empty-state p { font-size: 0.9rem; }
+
+    /* ── LOADING SKELETON ── */
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 25%,
+        rgba(255,255,255,0.08) 50%,
+        rgba(255,255,255,0.04) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 0.4rem;
+    }
+
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* ── GEOFENCE MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--navy-mid);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 1rem;
+      padding: 2rem;
+      width: 90%;
+      max-width: 420px;
+      transform: scale(0.95);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    .modal-overlay.show .modal { transform: scale(1); }
+
+    .modal-icon {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: var(--green-dim);
+      border: 1px solid rgba(0,195,122,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--green);
+      margin-bottom: 1.2rem;
+    }
+
+    .modal h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .modal p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 0.8rem;
+    }
+
+    .btn-cancel {
+      flex: 1;
+      padding: 0.75rem;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0.5rem;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-cancel:hover { border-color: var(--white); color: var(--white); }
+
+    .btn-confirm {
+      flex: 1;
+      padding: 0.75rem;
+      background: var(--green);
+      border: none;
+      border-radius: 0.5rem;
+      color: var(--navy);
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn-confirm:hover { background: var(--green-dark); }
+
+    .gps-status {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--navy);
+      border-radius: 0.5rem;
+      padding: 0.7rem 1rem;
+      font-size: 0.82rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .gps-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--warning);
+      flex-shrink: 0;
+    }
+
+    .gps-dot.found { background: var(--green); animation: pulse 1.5s infinite; }
+    .gps-dot.error { background: var(--error); }
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .stat-grid { grid-template-columns: 1fr; }
+      .session-card { grid-template-columns: 1fr; }
+      .content { padding: 1rem; }
+      .topbar { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="badge"><span></span> Live</div>
+      <h1>MMU Attendance</h1>
+      <p>Student Portal</p>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="avatar" id="avatarInitial">?</div>
+      <div class="user-info">
+        <div class="name" id="sidebarUsername">Loading...</div>
+        <div class="role">Student</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-label">Navigation</div>
+      <a class="nav-item active" href="#sessions">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        Active Sessions
+        <span class="badge-count" id="sessionCount">0</span>
+      </a>
+      <a class="nav-item" href="#history">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        Attendance History
+      </a>
+      <a class="nav-item" href="#units">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+        My Units
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="logout()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <h2>Student Dashboard</h2>
+        <p id="greetingText">Good morning</p>
+      </div>
+      <div class="topbar-right">
+        <div class="time-display">
+          <div class="time" id="liveClock">--:--</div>
+          <div class="date" id="liveDate">---</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- STAT CARDS -->
+      <div class="stat-grid">
+        <div class="stat-card green">
+          <div class="stat-card-icon">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="stat-card-value" id="statPresent">—</div>
+          <div class="stat-card-label">Sessions Attended</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-card-icon">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="stat-card-value" id="statTotal">—</div>
+          <div class="stat-card-label">Total Sessions</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-card-icon">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+          </div>
+          <div class="stat-card-value" id="statRate">—</div>
+          <div class="stat-card-label">Attendance Rate</div>
+        </div>
+      </div>
+
+      <!-- ACTIVE SESSIONS -->
+      <div id="sessions">
+        <div class="section-header">
+          <h3>Active Sessions</h3>
+          <button class="refresh-btn" onclick="loadSessions()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+            Refresh
+          </button>
+        </div>
+        <div class="sessions-grid" id="sessionsGrid">
+          <!-- injected by JS -->
+        </div>
+      </div>
+
+      <!-- ATTENDANCE HISTORY -->
+      <div id="history">
+        <div class="section-header">
+          <h3>Attendance History</h3>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Unit</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody">
+              <!-- injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- GEOFENCE CONFIRM MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-icon">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </div>
+      <h3>Mark Attendance</h3>
+      <p id="modalDesc">Your GPS location will be verified against the classroom location. Make sure you are physically present in the classroom.</p>
+
+      <div class="gps-status" id="gpsStatus">
+        <div class="gps-dot" id="gpsDot"></div>
+        <span id="gpsText">Acquiring GPS location...</span>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-confirm" id="confirmBtn" onclick="confirmMarkAttendance()" disabled>
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <div class="toast-icon" id="toastIcon"></div>
+    <div class="toast-body">
+      <div class="toast-title" id="toastTitle"></div>
+      <div class="toast-msg"   id="toastMsg"></div>
+    </div>
+  </div>
+
+  <script>
+    // ── CONFIG ──
+    const BASE_URL = "http://127.0.0.1:8000/api";
+    const token    = localStorage.getItem('token');
+    const username = localStorage.getItem('username') || 'Student';
+
+    // ── AUTH GUARD ──
+    if (!token) window.location.href = '../index.html';
+
+    // ── STATE ──
+    let currentSessionId = null;
+    let currentCoords    = null;
+    let markedSessions   = new Set();
+
+    // ── INIT ──
+    document.addEventListener('DOMContentLoaded', () => {
+      setUserInfo();
+      startClock();
+      setGreeting();
+      loadSessions();
+      loadAttendanceHistory();
+    });
+
+    // ── USER INFO ──
+    function setUserInfo() {
+      document.getElementById('sidebarUsername').textContent = username;
+      document.getElementById('avatarInitial').textContent  = username.charAt(0).toUpperCase();
+    }
+
+    // ── CLOCK ──
+    function startClock() {
+      const update = () => {
+        const now = new Date();
+        document.getElementById('liveClock').textContent = now.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('liveDate').textContent  = now.toLocaleDateString('en-KE', { weekday: 'short', day: 'numeric', month: 'short' });
+      };
+      update();
+      setInterval(update, 1000);
+    }
+
+    // ── GREETING ──
+    function setGreeting() {
+      const h = new Date().getHours();
+      const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+      document.getElementById('greetingText').textContent = `${greet}, ${username}`;
+    }
+
+    // ── API HELPER ──
+    async function apiFetch(endpoint, method = 'GET', body = null) {
+      const opts = {
+        method,
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Token ${token}`,
+        },
+      };
+      if (body) opts.body = JSON.stringify(body);
+      const res  = await fetch(`${BASE_URL}${endpoint}`, opts);
+      const data = await res.json();
+      if (!res.ok) throw data;
+      return data;
+    }
+
+    // ── LOAD ACTIVE SESSIONS ──
+    async function loadSessions() {
+      const grid = document.getElementById('sessionsGrid');
+      grid.innerHTML = `<div class="skeleton" style="height:90px;border-radius:0.8rem;"></div>
+                        <div class="skeleton" style="height:90px;border-radius:0.8rem;margin-top:1rem;"></div>`;
+      try {
+        const sessions = await apiFetch('/sessions/');
+        const now      = new Date();
+
+        // Filter only currently active sessions
+        const active = sessions.filter(s => {
+          const start = new Date(s.start_time);
+          const end   = new Date(s.end_time);
+          return now >= start && now <= end;
+        });
+
+        document.getElementById('sessionCount').textContent = active.length;
+
+        if (active.length === 0) {
+          grid.innerHTML = `
+            <div class="empty-state">
+              <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <p>No active sessions right now.<br/>Check back when your class starts.</p>
+            </div>`;
+          return;
+        }
+
+        grid.innerHTML = active.map((s, i) => {
+          const start   = new Date(s.start_time);
+          const end     = new Date(s.end_time);
+          const isMarked = markedSessions.has(s.id);
+          return `
+          <div class="session-card ${isMarked ? 'marked' : ''}" style="animation-delay:${i * 0.1}s">
+            <div>
+              <div class="session-unit">${s.unit_name || 'Unit #' + s.unit}</div>
+              <div class="session-code">${s.unit_code || 'CODE'}</div>
+              <div class="session-meta">
+                <div class="session-meta-item">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  ${start.toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})} –
+                  ${end.toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})}
+                </div>
+                <div class="session-meta-item">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  Geofence: ${s.radius_metres || 50}m radius
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.8rem;">
+              <div class="session-status ${isMarked ? 'marked' : 'active'}">
+                ${isMarked
+                  ? '✓ Marked'
+                  : '<span></span> Live'}
+              </div>
+              <button class="btn-mark" onclick="openModal(${s.id})" ${isMarked ? 'disabled' : ''}>
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                ${isMarked ? 'Attended' : 'Mark Attendance'}
+              </button>
+            </div>
+          </div>`;
+        }).join('');
+
+      } catch (err) {
+        grid.innerHTML = `<div class="empty-state"><p>Failed to load sessions. Is the server running?</p></div>`;
+      }
+    }
+
+    // ── LOAD ATTENDANCE HISTORY ──
+    async function loadAttendanceHistory() {
+      const body = document.getElementById('historyBody');
+      try {
+        const records = await apiFetch('/attendance/');
+
+        // Track already-marked sessions
+        records.forEach(r => {
+          if (r.status === 'PRESENT') markedSessions.add(r.session);
+        });
+
+        // Update stat cards
+        const present = records.filter(r => r.status === 'PRESENT').length;
+        const total   = records.length;
+        document.getElementById('statPresent').textContent = present;
+        document.getElementById('statTotal').textContent   = total;
+        document.getElementById('statRate').textContent    = total
+          ? Math.round((present / total) * 100) + '%'
+          : '0%';
+
+        if (records.length === 0) {
+          body.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:2rem;">No attendance records yet.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = records.map(r => {
+          const ts     = new Date(r.timestamp);
+          const status = r.status.toLowerCase();
+          return `
+          <tr>
+            <td>${r.session_unit_name || 'Session #' + r.session}</td>
+            <td>${ts.toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'})}</td>
+            <td>${ts.toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})}</td>
+            <td><span class="status-pill ${status}">${r.status}</span></td>
+          </tr>`;
+        }).join('');
+
+      } catch (err) {
+        body.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--error);padding:2rem;">Failed to load history.</td></tr>`;
+      }
+    }
+
+    // ── MODAL ──
+    function openModal(sessionId) {
+      currentSessionId = sessionId;
+      currentCoords    = null;
+
+      document.getElementById('gpsDot').className  = 'gps-dot';
+      document.getElementById('gpsText').textContent = 'Acquiring GPS location...';
+      document.getElementById('confirmBtn').disabled = true;
+      document.getElementById('modalOverlay').classList.add('show');
+
+      // Start getting GPS immediately
+      acquireGPS();
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('show');
+      currentSessionId = null;
+      currentCoords    = null;
+    }
+
+    // ── GPS ──
+    function acquireGPS() {
+      if (!navigator.geolocation) {
+        document.getElementById('gpsDot').className   = 'gps-dot error';
+        document.getElementById('gpsText').textContent = 'GPS not supported by your browser.';
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          currentCoords = {
+            latitude:  position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          document.getElementById('gpsDot').className   = 'gps-dot found';
+          document.getElementById('gpsText').textContent =
+            `📍 Location found (±${Math.round(position.coords.accuracy)}m accuracy)`;
+          document.getElementById('confirmBtn').disabled = false;
+        },
+        error => {
+          document.getElementById('gpsDot').className   = 'gps-dot error';
+          document.getElementById('gpsText').textContent =
+            'Location denied. Please enable GPS and try again.';
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    // ── CONFIRM MARK ATTENDANCE ──
+    async function confirmMarkAttendance() {
+      if (!currentCoords || !currentSessionId) return;
+
+      const btn = document.getElementById('confirmBtn');
+      btn.disabled     = true;
+      btn.textContent  = 'Submitting...';
+
+      try {
+        const result = await apiFetch('/mark-attendance/', 'POST', {
+          session_id: currentSessionId,
+          latitude:   currentCoords.latitude,
+          longitude:  currentCoords.longitude,
+        });
+
+        markedSessions.add(currentSessionId);
+        closeModal();
+        showToast('success', 'Attendance Marked!',
+          `You are ${Math.round(result.distance_metres)}m from the classroom.`);
+        loadSessions();
+        loadAttendanceHistory();
+
+      } catch (err) {
+        closeModal();
+        const msg = err.error || 'Something went wrong. Please try again.';
+        const isGeo = msg.toLowerCase().includes('outside');
+        showToast('error',
+          isGeo ? 'Outside Geofence' : 'Failed',
+          isGeo ? `You are ${err.distance_metres}m away. Allowed: ${err.allowed_radius}m.` : msg);
+      }
+    }
+
+    // ── TOAST ──
+    function showToast(type, title, msg) {
+      const toast = document.getElementById('toast');
+      const icon  = document.getElementById('toastIcon');
+
+      toast.className = `toast ${type}`;
+      document.getElementById('toastTitle').textContent = title;
+      document.getElementById('toastMsg').textContent   = msg;
+
+      icon.innerHTML = type === 'success'
+        ? `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`
+        : `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+
+    // ── LOGOUT ──
+    function logout() {
+      localStorage.clear();
+      window.location.href = '../index.html';
+    }
+  </script>
+</body>
+</html>
