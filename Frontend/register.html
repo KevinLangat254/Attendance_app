@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MMU Attendance — Register</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:      #00C37A;
+      --green-dark: #009F63;
+      --green-dim:  rgba(0,195,122,0.1);
+      --navy:       #0B1C2C;
+      --navy-mid:   #112236;
+      --navy-light: #1A3352;
+      --white:      #F4F8FB;
+      --muted:      #7A97B0;
+      --error:      #FF5C5C;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--navy);
+      color: var(--white);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 10% 90%, rgba(0,195,122,0.1) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 90% 10%, rgba(0,195,122,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,195,122,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,195,122,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    .card {
+      background: var(--navy-mid);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 1.2rem;
+      width: 100%;
+      max-width: 560px;
+      padding: 2.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--green), transparent);
+      border-radius: 1.2rem 1.2rem 0 0;
+    }
+
+    /* ── HEADER ── */
+    .card-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.5s ease forwards;
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--green-dim);
+      border: 1px solid rgba(0,195,122,0.2);
+      border-radius: 2rem;
+      padding: 0.3rem 0.9rem;
+      font-size: 0.72rem;
+      color: var(--green);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .brand-badge span {
+      width: 5px; height: 5px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.4; transform:scale(0.8); }
+    }
+
+    .card-header h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .card-header p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+    }
+
+    /* ── ROLE TOGGLE ── */
+    .role-toggle {
+      display: flex;
+      gap: 0.5rem;
+      background: var(--navy);
+      border-radius: 0.6rem;
+      padding: 0.3rem;
+      margin-bottom: 1.8rem;
+      animation: fadeUp 0.5s 0.1s ease forwards;
+      opacity: 0;
+    }
+
+    .role-btn {
+      flex: 1;
+      padding: 0.65rem;
+      border: none;
+      border-radius: 0.4rem;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .role-btn.active {
+      background: var(--navy-light);
+      color: var(--white);
+    }
+
+    /* ── FORM ── */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.1rem;
+      animation: fadeUp 0.5s ease forwards;
+      opacity: 0;
+    }
+
+    .form-group:nth-child(1) { animation-delay: 0.15s; }
+    .form-group:nth-child(2) { animation-delay: 0.20s; }
+    .form-group:nth-child(3) { animation-delay: 0.25s; }
+    .form-group:nth-child(4) { animation-delay: 0.30s; }
+    .form-group:nth-child(5) { animation-delay: 0.35s; }
+    .form-group:nth-child(6) { animation-delay: 0.40s; }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(12px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 0.45rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .input-wrap { position: relative; }
+
+    .input-wrap svg.icon {
+      position: absolute;
+      left: 0.9rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+      transition: color 0.2s;
+    }
+
+    .input-wrap input,
+    .input-wrap select {
+      width: 100%;
+      background: var(--navy);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 0.55rem;
+      padding: 0.8rem 1rem 0.8rem 2.6rem;
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+    }
+
+    .input-wrap select { cursor: pointer; }
+    .input-wrap select option { background: var(--navy-mid); }
+
+    .input-wrap input::placeholder { color: rgba(122,151,176,0.6); }
+
+    .input-wrap input:focus,
+    .input-wrap select:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(0,195,122,0.1);
+    }
+
+    .input-wrap input:focus ~ svg.icon,
+    .input-wrap select:focus ~ svg.icon { color: var(--green); }
+
+    .input-wrap svg.toggle-pwd {
+      position: absolute;
+      right: 0.9rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .input-wrap svg.toggle-pwd:hover { color: var(--white); }
+
+    /* field validation states */
+    .input-wrap input.valid   { border-color: rgba(0,195,122,0.4); }
+    .input-wrap input.invalid { border-color: rgba(255,92,92,0.4); }
+
+    .field-hint {
+      font-size: 0.75rem;
+      margin-top: 0.35rem;
+      color: var(--muted);
+      min-height: 1rem;
+    }
+
+    .field-hint.error { color: var(--error); }
+    .field-hint.ok    { color: var(--green); }
+
+    /* ── PASSWORD STRENGTH ── */
+    .strength-bar {
+      display: flex;
+      gap: 3px;
+      margin-top: 0.4rem;
+    }
+
+    .strength-seg {
+      flex: 1;
+      height: 3px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      transition: background 0.3s;
+    }
+
+    .strength-seg.weak   { background: var(--error); }
+    .strength-seg.medium { background: var(--warning, #FFB347); }
+    .strength-seg.strong { background: var(--green); }
+
+    /* ── FACULTY / PROGRAM SELECTS ── */
+    .select-arrow {
+      position: absolute;
+      right: 0.9rem;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--muted);
+    }
+
+    /* ── ERROR BANNER ── */
+    .error-banner {
+      background: rgba(255,92,92,0.1);
+      border: 1px solid rgba(255,92,92,0.25);
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      color: var(--error);
+      margin-bottom: 1.2rem;
+      display: none;
+    }
+
+    .error-banner.show { display: block; }
+
+    /* ── SUBMIT BUTTON ── */
+    .btn-register {
+      width: 100%;
+      padding: 0.95rem;
+      background: var(--green);
+      color: var(--navy);
+      border: none;
+      border-radius: 0.6rem;
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.2s, transform 0.15s;
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      animation: fadeUp 0.5s 0.5s ease forwards;
+      opacity: 0;
+    }
+
+    .btn-register:hover  { background: var(--green-dark); }
+    .btn-register:active { transform: scale(0.98); }
+
+    .btn-register.loading { pointer-events: none; opacity: 0.8; }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(11,28,44,0.3);
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .btn-register.loading .spinner   { display: block; }
+    .btn-register.loading .btn-text  { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── FOOTER LINK ── */
+    .card-footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      animation: fadeUp 0.5s 0.6s ease forwards;
+      opacity: 0;
+    }
+
+    .card-footer a {
+      color: var(--green);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .card-footer a:hover { text-decoration: underline; }
+
+    /* ── SUCCESS STATE ── */
+    .success-screen {
+      text-align: center;
+      padding: 1rem 0;
+      display: none;
+    }
+
+    .success-icon {
+      width: 64px; height: 64px;
+      background: var(--green-dim);
+      border: 2px solid rgba(0,195,122,0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.2rem;
+      color: var(--green);
+    }
+
+    .success-screen h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .success-screen p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn-go-login {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.8rem 2rem;
+      background: var(--green);
+      color: var(--navy);
+      border: none;
+      border-radius: 0.5rem;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-decoration: none;
+    }
+
+    .btn-go-login:hover { background: var(--green-dark); }
+
+    @media (max-width: 520px) {
+      .form-row { grid-template-columns: 1fr; }
+      .card { padding: 1.8rem 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+
+  <div class="card">
+
+    <!-- HEADER -->
+    <div class="card-header">
+      <div class="brand-badge"><span></span> MMU Kenya</div>
+      <h1>Create Account</h1>
+      <p>Join the MMU Attendance System</p>
+    </div>
+
+    <!-- ROLE TOGGLE -->
+    <div class="role-toggle">
+      <button class="role-btn active" onclick="setRole('student', this)">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+          <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+        </svg>
+        Student
+      </button>
+      <button class="role-btn" onclick="setRole('teacher', this)">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Teacher
+      </button>
+    </div>
+
+    <!-- ERROR BANNER -->
+    <div class="error-banner" id="errorBanner"></div>
+
+    <!-- REGISTRATION FORM -->
+    <form id="registerForm" onsubmit="handleRegister(event)">
+
+      <!-- Name Row -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name</label>
+          <div class="input-wrap">
+            <input type="text" id="firstName" placeholder="John" required/>
+            <svg class="icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Last Name</label>
+          <div class="input-wrap">
+            <input type="text" id="lastName" placeholder="Doe" required/>
+            <svg class="icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Username -->
+      <div class="form-group">
+        <label>Username</label>
+        <div class="input-wrap">
+          <input type="text" id="username" placeholder="e.g. john.doe" required
+                 oninput="validateUsername(this)"/>
+          <svg class="icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <div class="field-hint" id="usernameHint"></div>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label>Email Address</label>
+        <div class="input-wrap">
+          <input type="email" id="email" placeholder="john.doe@mmu.ac.ke" required
+                 oninput="validateEmail(this)"/>
+          <svg class="icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+        </div>
+        <div class="field-hint" id="emailHint"></div>
+      </div>
+
+      <!-- Faculty & Program (students only) -->
+      <div id="programSection">
+        <div class="form-group">
+          <label>Faculty</label>
+          <div class="input-wrap">
+            <select id="facultySelect" onchange="filterPrograms()">
+              <option value="">Select faculty</option>
+              <option value="FoCIT">Faculty of Computing and Information Technology</option>
+              <option value="FAMECO">Faculty of Media and Economics</option>
+              <option value="FoET">Faculty of Engineering and Technology</option>
+              <option value="FoBE">Faculty of Business and Economics</option>
+              <option value="FoST">Faculty of Science and Technology</option>
+              <option value="FoSST">Faculty of Social Sciences and Technology</option>
+            </select>
+            <svg class="icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+            <svg class="select-arrow" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Programme</label>
+          <div class="input-wrap">
+            <select id="programSelect" disabled>
+              <option value="">Select faculty first</option>
+            </select>
+            <svg class="icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+            <svg class="select-arrow" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-wrap">
+          <input type="password" id="password" placeholder="Min. 8 characters" required
+                 oninput="checkPasswordStrength(this)"/>
+          <svg class="icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <svg class="toggle-pwd" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" onclick="togglePwd('password')">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <div class="strength-bar">
+          <div class="strength-seg" id="seg1"></div>
+          <div class="strength-seg" id="seg2"></div>
+          <div class="strength-seg" id="seg3"></div>
+          <div class="strength-seg" id="seg4"></div>
+        </div>
+        <div class="field-hint" id="passwordHint"></div>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <div class="input-wrap">
+          <input type="password" id="confirmPassword" placeholder="Repeat your password" required
+                 oninput="checkPasswordMatch(this)"/>
+          <svg class="icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <svg class="toggle-pwd" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" onclick="togglePwd('confirmPassword')">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <div class="field-hint" id="confirmHint"></div>
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" class="btn-register" id="registerBtn">
+        <span class="btn-text">Create Account</span>
+        <div class="spinner"></div>
+      </button>
+
+    </form>
+
+    <!-- SUCCESS SCREEN (hidden until registration succeeds) -->
+    <div class="success-screen" id="successScreen">
+      <div class="success-icon">
+        <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <h2>Account Created!</h2>
+      <p id="successMsg">Your account has been created successfully.<br/>You can now sign in.</p>
+      <a href="index.html" class="btn-go-login">
+        Go to Login
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </a>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="card-footer" id="cardFooter">
+      Already have an account? <a href="index.html">Sign in</a>
+    </div>
+
+  </div>
+
+  <script>
+    const BASE_URL    = "http://127.0.0.1:8000/api";
+    let selectedRole  = 'student';
+    let allPrograms   = [];
+
+    // ── INIT ──
+    document.addEventListener('DOMContentLoaded', () => {
+      loadPrograms();
+    });
+
+    // ── ROLE TOGGLE ──
+    function setRole(role, btn) {
+      selectedRole = role;
+      document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Hide programme section for teachers — they don't enroll in a program
+      document.getElementById('programSection').style.display =
+        role === 'student' ? 'block' : 'none';
+    }
+
+    // ── LOAD PROGRAMS FROM DJANGO ──
+    async function loadPrograms() {
+      try {
+        const response = await fetch(`${BASE_URL}/programs/`);
+        allPrograms    = await response.json();
+      } catch (err) {
+        console.error('Could not load programs:', err);
+      }
+    }
+
+    // ── FILTER PROGRAMS BY FACULTY ──
+    function filterPrograms() {
+      const faculty = document.getElementById('facultySelect').value;
+      const select  = document.getElementById('programSelect');
+
+      if (!faculty) {
+        select.innerHTML = '<option value="">Select faculty first</option>';
+        select.disabled  = true;
+        return;
+      }
+
+      const filtered = allPrograms.filter(p => p.faculty === faculty);
+      select.disabled = false;
+      select.innerHTML = '<option value="">Select your programme</option>' +
+        filtered.map(p => `<option value="${p.id}">${p.course}</option>`).join('');
+    }
+
+    // ── VALIDATION HELPERS ──
+    function validateUsername(input) {
+      const hint = document.getElementById('usernameHint');
+      const val  = input.value.trim();
+      if (val.length < 3) {
+        hint.textContent  = 'Username must be at least 3 characters.';
+        hint.className    = 'field-hint error';
+        input.className   = 'invalid';
+      } else if (/\s/.test(val)) {
+        hint.textContent  = 'Username cannot contain spaces.';
+        hint.className    = 'field-hint error';
+        input.className   = 'invalid';
+      } else {
+        hint.textContent  = '✓ Looks good';
+        hint.className    = 'field-hint ok';
+        input.className   = 'valid';
+      }
+    }
+
+    function validateEmail(input) {
+      const hint  = document.getElementById('emailHint');
+      const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+      if (!valid && input.value) {
+        hint.textContent = 'Please enter a valid email address.';
+        hint.className   = 'field-hint error';
+        input.className  = 'invalid';
+      } else if (valid) {
+        hint.textContent = '✓ Valid email';
+        hint.className   = 'field-hint ok';
+        input.className  = 'valid';
+      } else {
+        hint.textContent = '';
+        input.className  = '';
+      }
+    }
+
+    function checkPasswordStrength(input) {
+      const val  = input.value;
+      const hint = document.getElementById('passwordHint');
+      const segs = [
+        document.getElementById('seg1'),
+        document.getElementById('seg2'),
+        document.getElementById('seg3'),
+        document.getElementById('seg4'),
+      ];
+
+      // Reset
+      segs.forEach(s => s.className = 'strength-seg');
+
+      if (!val) { hint.textContent = ''; return; }
+
+      let score = 0;
+      if (val.length >= 8)          score++;
+      if (/[A-Z]/.test(val))        score++;
+      if (/[0-9]/.test(val))        score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+
+      const labels  = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+      const classes = ['', 'weak', 'weak', 'medium', 'strong'];
+
+      for (let i = 0; i < score; i++) {
+        segs[i].className = `strength-seg ${classes[score]}`;
+      }
+
+      hint.textContent = score > 0 ? labels[score] : '';
+      hint.className   = score < 2 ? 'field-hint error' : score < 4 ? 'field-hint' : 'field-hint ok';
+    }
+
+    function checkPasswordMatch(input) {
+      const hint     = document.getElementById('confirmHint');
+      const password = document.getElementById('password').value;
+      if (input.value && input.value !== password) {
+        hint.textContent = 'Passwords do not match.';
+        hint.className   = 'field-hint error';
+        input.className  = 'invalid';
+      } else if (input.value === password && input.value) {
+        hint.textContent = '✓ Passwords match';
+        hint.className   = 'field-hint ok';
+        input.className  = 'valid';
+      } else {
+        hint.textContent = '';
+        input.className  = '';
+      }
+    }
+
+    function togglePwd(fieldId) {
+      const input = document.getElementById(fieldId);
+      input.type  = input.type === 'password' ? 'text' : 'password';
+    }
+
+    // ── ERROR BANNER ──
+    function showError(msg) {
+      const el = document.getElementById('errorBanner');
+      el.textContent = msg;
+      el.classList.add('show');
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function hideError() {
+      document.getElementById('errorBanner').classList.remove('show');
+    }
+
+    // ── REGISTER HANDLER ──
+    async function handleRegister(e) {
+      e.preventDefault();
+      hideError();
+
+      const firstName       = document.getElementById('firstName').value.trim();
+      const lastName        = document.getElementById('lastName').value.trim();
+      const username        = document.getElementById('username').value.trim();
+      const email           = document.getElementById('email').value.trim();
+      const password        = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const programId       = document.getElementById('programSelect')?.value;
+
+      // ── Client-side validation ──
+      if (password !== confirmPassword) {
+        showError('Passwords do not match. Please check and try again.');
+        return;
+      }
+
+      if (password.length < 8) {
+        showError('Password must be at least 8 characters.');
+        return;
+      }
+
+      if (selectedRole === 'student' && !programId) {
+        showError('Please select your faculty and programme.');
+        return;
+      }
+
+      const btn = document.getElementById('registerBtn');
+      btn.classList.add('loading');
+
+      try {
+        // Step 1 — Create the user
+        const payload = {
+          username,
+          email,
+          first_name:  firstName,
+          last_name:   lastName,
+          password:    password,
+          is_student:  selectedRole === 'student',
+          is_teacher:  selectedRole === 'teacher',
+        };
+
+        const response = await fetch(`${BASE_URL}/users/`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          // Django returns field-level errors as an object
+          const firstError = Object.values(data)[0];
+          showError(Array.isArray(firstError) ? firstError[0] : firstError);
+          return;
+        }
+
+        // Step 2 — If student, create enrollment
+        if (selectedRole === 'student' && programId) {
+          // Login first to get a token for the enrollment request
+          const loginRes  = await fetch(`${BASE_URL}/auth/login/`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ username, password }),
+          });
+          const loginData = await loginRes.json();
+
+          if (loginData.token) {
+            await fetch(`${BASE_URL}/enrollments/`, {
+              method:  'POST',
+              headers: {
+                'Content-Type':  'application/json',
+                'Authorization': `Token ${loginData.token}`,
+              },
+              body: JSON.stringify({
+                student: data.id,
+                program: parseInt(programId),
+              }),
+            });
+          }
+        }
+         //
+        sessionStorage.setItem('justRegistered', 'true');
+        // Step 3 — Show success screen
+        document.getElementById('registerForm').style.display  = 'none';
+        document.getElementById('cardFooter').style.display    = 'none';
+        document.querySelector('.role-toggle').style.display   = 'none';
+        document.getElementById('successMsg').innerHTML =
+          `Welcome, <strong>${firstName}</strong>! Your account has been created.<br/>You can now sign in.`;
+        document.getElementById('successScreen').style.display = 'block';
+
+      } catch (err) {
+        showError('Unable to connect to the server. Is Django running?');
+      } finally {
+        btn.classList.remove('loading');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -4,16 +4,23 @@ from .serializers import (
     UserSerializer, ProgramSerializer, EnrollmentSerializer,
     UnitSerializer, SessionSerializer, AttendanceSerializer
 )
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+    queryset         = User.objects.all()
     serializer_class = UserSerializer
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
 
 class ProgramViewSet(viewsets.ModelViewSet):
-    queryset = Program.objects.all()
-    serializer_class = ProgramSerializer
+    queryset           = Program.objects.all().order_by('faculty', 'course')
+    serializer_class   = ProgramSerializer
+    permission_classes = [AllowAny]   # ← public, no token needed
 
 
 class EnrollmentViewSet(viewsets.ModelViewSet):

@@ -3,9 +3,19 @@ from .models import User, Program, Enrollment, Unit, Session, Attendance
 
 
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
     class Meta:
-        model = User
-        fields = ["id", "username", "email", "is_teacher", "is_student"]
+        model  = User
+        fields = ["id", "username", "email", "first_name", "last_name",
+                  "password", "is_teacher", "is_student"]
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        user     = User(**validated_data)
+        user.set_password(password)  # ← hashes the password correctly
+        user.save()
+        return user
 
 
 class ProgramSerializer(serializers.ModelSerializer):
