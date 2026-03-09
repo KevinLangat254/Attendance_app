@@ -757,6 +757,174 @@
     .empty-state svg { margin-bottom: 1rem; opacity: 0.3; }
     .empty-state p   { font-size: 0.88rem; }
 
+    /* ── MY UNITS SECTION ── */
+    .units-section {
+      margin-top: 2rem;
+    }
+
+    .units-tabs {
+      display: flex;
+      gap: 0.3rem;
+      background: var(--navy);
+      border-radius: 0.6rem;
+      padding: 0.3rem;
+      margin-bottom: 1.2rem;
+      width: fit-content;
+    }
+
+    .units-tab {
+      padding: 0.5rem 1.2rem;
+      border: none;
+      border-radius: 0.4rem;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .units-tab.active {
+      background: var(--navy-light);
+      color: var(--white);
+    }
+
+    .units-tab .tab-count {
+      background: var(--blue-dim);
+      color: var(--blue);
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.1rem 0.45rem;
+      border-radius: 1rem;
+    }
+
+    .units-tab.active .tab-count {
+      background: var(--blue);
+      color: var(--white);
+    }
+
+    .units-filter-row {
+      display: flex;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .units-filter-row select {
+      background: var(--navy-card);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 0.5rem;
+      padding: 0.55rem 1rem;
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      min-width: 200px;
+    }
+
+    .units-filter-row select:focus {
+      border-color: var(--blue);
+    }
+
+    .units-filter-row select option {
+      background: var(--navy-mid);
+    }
+
+    .unit-row {
+      background: var(--navy-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 0.7rem;
+      padding: 1rem 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.6rem;
+      transition: border-color 0.2s;
+      animation: fadeUp 0.4s ease forwards;
+      opacity: 0;
+    }
+
+    .unit-row:hover { border-color: rgba(74,158,255,0.2); }
+
+    .unit-row.mine { border-color: rgba(0,195,122,0.2); background: rgba(0,195,122,0.03); }
+
+    .unit-row-left { flex: 1; min-width: 0; }
+
+    .unit-row-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .unit-row-meta {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .unit-tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.15rem 0.55rem;
+      border-radius: 0.3rem;
+    }
+
+    .unit-tag.code  { background: var(--blue-dim); color: var(--blue); }
+    .unit-tag.yr    { background: rgba(255,255,255,0.05); color: var(--muted); }
+    .unit-tag.mine  { background: var(--green-dim); color: var(--green); }
+
+    .btn-claim {
+      padding: 0.5rem 1rem;
+      background: var(--blue-dim);
+      border: 1px solid rgba(74,158,255,0.2);
+      border-radius: 0.45rem;
+      color: var(--blue);
+      font-family: 'Syne', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .btn-claim:hover { background: rgba(74,158,255,0.2); }
+
+    .btn-unclaim {
+      padding: 0.5rem 1rem;
+      background: rgba(255,92,92,0.08);
+      border: 1px solid rgba(255,92,92,0.2);
+      border-radius: 0.45rem;
+      color: var(--error);
+      font-family: 'Syne', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .btn-unclaim:hover { background: rgba(255,92,92,0.15); }
+
     @media (max-width: 1024px) {
       .two-col { grid-template-columns: 1fr; }
       .stat-grid { grid-template-columns: repeat(2,1fr); }
@@ -953,6 +1121,62 @@
         </div>
 
       </div>
+
+      <!-- MY UNITS SECTION -->
+      <div class="units-section" id="units">
+        <div class="section-header">
+          <h3>My Units</h3>
+          <button class="btn-sm" onclick="loadMyUnits(); loadBrowseUnits();">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+            Refresh
+          </button>
+        </div>
+
+        <!-- TABS -->
+        <div class="units-tabs">
+          <button class="units-tab active" id="tabMine" onclick="switchTab('mine')">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            My Units
+            <span class="tab-count" id="myUnitCount">0</span>
+          </button>
+          <button class="units-tab" id="tabBrowse" onclick="switchTab('browse')">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            Browse & Claim
+          </button>
+        </div>
+
+        <!-- MY UNITS TAB -->
+        <div id="panelMine">
+          <div id="myUnitsGrid"></div>
+        </div>
+
+        <!-- BROWSE TAB -->
+        <div id="panelBrowse" style="display:none;">
+          <div class="units-filter-row">
+            <select id="browseFaculty" onchange="onBrowseFacultyChange()">
+              <option value="">All Faculties</option>
+              <option value="FoCIT">Faculty of Computing and Information Technology</option>
+              <option value="FAMECO">Faculty of Media and Economics</option>
+              <option value="FoET">Faculty of Engineering and Technology</option>
+              <option value="FoBE">Faculty of Business and Economics</option>
+              <option value="FoST">Faculty of Science and Technology</option>
+              <option value="FoSST">Faculty of Social Sciences and Technology</option>
+            </select>
+            <select id="browseProgramme" onchange="renderBrowseUnits()" disabled>
+              <option value="">All Programmes</option>
+            </select>
+          </div>
+          <div id="browseUnitsGrid"></div>
+        </div>
+      </div>
+
     </div>
   </main>
 
@@ -1262,16 +1486,243 @@
       }
     }
 
-    // ── LOAD UNITS FOR DROPDOWN ──
+    // ── UNIT MANAGEMENT STATE ──
+    let allUnits      = [];
+    let allPrograms   = [];
+    let teacherProfile = null;
+
+    // ── LOAD UNITS FOR SESSION DROPDOWN (only teacher's own units) ──
     async function loadUnits() {
       try {
         const units  = await apiFetch('/units/');
+        allUnits     = units;
+
+        // Also cache programs for browse filter
+        allPrograms  = await apiFetch('/programs/');
+
+        // Get teacher profile to know their ID
+        const users  = await apiFetch('/users/');
+        teacherProfile = users.find(u => u.username === username);
+
+        // Populate session create dropdown — only units this teacher teaches
+        const myUnits = allUnits.filter(u =>
+          teacherProfile && u.teacher === teacherProfile.id
+        );
+
         const select = document.getElementById('unitSelect');
-        select.innerHTML = `<option value="">Select a unit</option>` +
-          units.map(u => `<option value="${u.id}">${u.unit_code} — ${u.name}</option>`).join('');
+        if (myUnits.length === 0) {
+          select.innerHTML = `<option value="">No units claimed yet — go to My Units tab</option>`;
+        } else {
+          select.innerHTML = `<option value="">Select a unit</option>` +
+            myUnits.map(u => `<option value="${u.id}">${u.unit_code} — ${u.name}</option>`).join('');
+        }
+
+        // Load both unit panels
+        loadMyUnits();
+        loadBrowseUnits();
+
       } catch (err) {
         document.getElementById('unitSelect').innerHTML = `<option value="">Failed to load units</option>`;
       }
+    }
+
+    // ── MY UNITS TAB ──
+    function loadMyUnits() {
+      const grid = document.getElementById('myUnitsGrid');
+
+      if (!teacherProfile) {
+        grid.innerHTML = `<div class="empty-state"><p>Loading...</p></div>`;
+        return;
+      }
+
+      const myUnits = allUnits.filter(u => u.teacher === teacherProfile.id);
+      document.getElementById('myUnitCount').textContent = myUnits.length;
+
+      if (myUnits.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+            <p>You haven't claimed any units yet.<br/>Go to <strong>Browse & Claim</strong> to add your units.</p>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = myUnits.map((u, i) => `
+        <div class="unit-row mine" style="animation-delay:${i * 0.05}s">
+          <div class="unit-row-left">
+            <div class="unit-row-name">${u.name}</div>
+            <div class="unit-row-meta">
+              <span class="unit-tag code">${u.unit_code}</span>
+              <span class="unit-tag yr">Year ${u.year} · Sem ${u.semester}</span>
+              <span class="unit-tag mine">✓ My Unit</span>
+            </div>
+          </div>
+          <button class="btn-unclaim" onclick="unclaimUnit(${u.id}, this)">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            Remove
+          </button>
+        </div>`).join('');
+    }
+
+    // ── BROWSE UNITS TAB ──
+    function loadBrowseUnits() {
+      renderBrowseUnits();
+    }
+
+    function onBrowseFacultyChange() {
+      const faculty   = document.getElementById('browseFaculty').value;
+      const progSelect = document.getElementById('browseProgramme');
+
+      if (!faculty) {
+        progSelect.innerHTML = `<option value="">All Programmes</option>`;
+        progSelect.disabled  = true;
+      } else {
+        const filtered = allPrograms.filter(p => p.faculty === faculty);
+        progSelect.innerHTML = `<option value="">All Programmes</option>` +
+          filtered.map(p => `<option value="${p.id}">${p.course}</option>`).join('');
+        progSelect.disabled = false;
+      }
+      renderBrowseUnits();
+    }
+
+    function renderBrowseUnits() {
+      const grid      = document.getElementById('browseUnitsGrid');
+      const faculty   = document.getElementById('browseFaculty').value;
+      const programId = parseInt(document.getElementById('browseProgramme').value) || null;
+
+      if (!teacherProfile) {
+        grid.innerHTML = `<div class="empty-state"><p>Loading...</p></div>`;
+        return;
+      }
+
+      let filtered = [...allUnits];
+
+      if (programId) {
+        filtered = filtered.filter(u => u.program === programId);
+      } else if (faculty) {
+        const facProgIds = allPrograms.filter(p => p.faculty === faculty).map(p => p.id);
+        filtered = filtered.filter(u => facProgIds.includes(u.program));
+      }
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="empty-state"><p>No units found for this filter.</p></div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map((u, i) => {
+        const isMine    = u.teacher === teacherProfile.id;
+        const isTaken   = u.teacher !== null && u.teacher !== teacherProfile.id;
+
+        return `
+        <div class="unit-row ${isMine ? 'mine' : ''}" style="animation-delay:${i * 0.03}s" id="unitrow-${u.id}">
+          <div class="unit-row-left">
+            <div class="unit-row-name">${u.name}</div>
+            <div class="unit-row-meta">
+              <span class="unit-tag code">${u.unit_code}</span>
+              <span class="unit-tag yr">Year ${u.year} · Sem ${u.semester}</span>
+              ${isMine   ? `<span class="unit-tag mine">✓ My Unit</span>` : ''}
+              ${isTaken  ? `<span class="unit-tag yr">Assigned to ${u.teacher_name}</span>` : ''}
+            </div>
+          </div>
+          ${isMine
+            ? `<button class="btn-unclaim" onclick="unclaimUnit(${u.id}, this)">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                Remove
+               </button>`
+            : isTaken
+            ? `<span style="font-size:0.78rem;color:var(--muted);white-space:nowrap;">Already assigned</span>`
+            : `<button class="btn-claim" onclick="claimUnit(${u.id}, this)">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Claim
+               </button>`
+          }
+        </div>`;
+      }).join('');
+    }
+
+    // ── CLAIM A UNIT ──
+    async function claimUnit(unitId, btn) {
+      btn.disabled     = true;
+      btn.textContent  = 'Claiming...';
+      try {
+        await apiFetch(`/units/${unitId}/claim/`, 'PATCH');
+
+        // Update local cache
+        const unit = allUnits.find(u => u.id === unitId);
+        if (unit) {
+          unit.teacher      = teacherProfile.id;
+          unit.teacher_name = teacherProfile.first_name
+            ? `${teacherProfile.first_name} ${teacherProfile.last_name}`.trim()
+            : teacherProfile.username;
+        }
+
+        showToast('success', 'Unit Claimed!', 'This unit has been added to your list.');
+        loadMyUnits();
+        renderBrowseUnits();
+        refreshSessionDropdown();
+
+      } catch (err) {
+        showToast('error', 'Failed', err.error || 'Could not claim this unit.');
+        btn.disabled    = false;
+        btn.textContent = 'Claim';
+      }
+    }
+
+    // ── UNCLAIM A UNIT ──
+    async function unclaimUnit(unitId, btn) {
+      btn.disabled    = true;
+      btn.textContent = 'Removing...';
+      try {
+        await apiFetch(`/units/${unitId}/unclaim/`, 'PATCH');
+
+        // Update local cache
+        const unit = allUnits.find(u => u.id === unitId);
+        if (unit) {
+          unit.teacher      = null;
+          unit.teacher_name = null;
+        }
+
+        showToast('success', 'Unit Removed', 'Unit removed from your list.');
+        loadMyUnits();
+        renderBrowseUnits();
+        refreshSessionDropdown();
+
+      } catch (err) {
+        showToast('error', 'Failed', err.error || 'Could not remove this unit.');
+        btn.disabled    = false;
+        btn.textContent = 'Remove';
+      }
+    }
+
+    // ── REFRESH SESSION DROPDOWN after claim/unclaim ──
+    function refreshSessionDropdown() {
+      const myUnits = allUnits.filter(u =>
+        teacherProfile && u.teacher === teacherProfile.id
+      );
+      const select = document.getElementById('unitSelect');
+      if (myUnits.length === 0) {
+        select.innerHTML = `<option value="">No units claimed yet — go to My Units tab</option>`;
+      } else {
+        select.innerHTML = `<option value="">Select a unit</option>` +
+          myUnits.map(u => `<option value="${u.id}">${u.unit_code} — ${u.name}</option>`).join('');
+      }
+    }
+
+    // ── TAB SWITCHER ──
+    function switchTab(tab) {
+      document.getElementById('panelMine').style.display   = tab === 'mine'   ? 'block' : 'none';
+      document.getElementById('panelBrowse').style.display = tab === 'browse' ? 'block' : 'none';
+      document.getElementById('tabMine').classList.toggle('active',   tab === 'mine');
+      document.getElementById('tabBrowse').classList.toggle('active', tab === 'browse');
     }
 
     // ── GPS FOR TEACHER ──
@@ -1368,8 +1819,8 @@
 
     // ── LOGOUT ──
     function logout() {
-    localStorage.clear();
-    window.location.href = '../../index.html';  
+      localStorage.clear();
+      window.location.href = '../../index.html';
     }
   </script>
 </body>
