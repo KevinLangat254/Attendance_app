@@ -27,7 +27,8 @@ class ProgramSerializer(serializers.ModelSerializer):
 class EnrollmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Enrollment
-        fields = ["id", "student", "program", "date_enrolled", "is_active"]
+        fields = ['id', 'student', 'program', 'date_enrolled',
+          'is_active', 'current_year', 'current_semester']
 
     def validate_student(self, user):
         if not user.is_student:

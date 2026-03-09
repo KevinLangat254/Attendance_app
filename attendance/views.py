@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Program, Enrollment, Unit, Session, Attendance
 from .serializers import (
     UserSerializer, ProgramSerializer, EnrollmentSerializer,
@@ -26,7 +27,8 @@ class ProgramViewSet(viewsets.ModelViewSet):
 class EnrollmentViewSet(viewsets.ModelViewSet):
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
-
+    filter_backends  = [DjangoFilterBackend]
+    filterset_fields = ['student', 'program']
 
 class UnitViewSet(viewsets.ModelViewSet):
     queryset = Unit.objects.all()
@@ -41,3 +43,5 @@ class SessionViewSet(viewsets.ModelViewSet):
 class AttendanceViewSet(viewsets.ModelViewSet):
     queryset = Attendance.objects.all()
     serializer_class = AttendanceSerializer
+    filter_backends  = [DjangoFilterBackend]
+    filterset_fields = ['student', 'session']

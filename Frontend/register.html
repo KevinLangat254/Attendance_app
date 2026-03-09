@@ -532,7 +532,7 @@
         <div class="form-group">
           <label>Programme</label>
           <div class="input-wrap">
-            <select id="programSelect" disabled>
+            <select id="programSelect" disabled onchange="onProgramChange()">
               <option value="">Select faculty first</option>
             </select>
             <svg class="icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -544,6 +544,43 @@
             </svg>
           </div>
         </div>
+
+        <!-- Year & Semester — shown after programme is selected -->
+        <div class="form-row" id="yearSemesterRow" style="display:none;">
+          <div class="form-group">
+            <label>Current Year</label>
+            <div class="input-wrap">
+              <select id="currentYear">
+                <option value="">Select year</option>
+              </select>
+              <svg class="icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+              </svg>
+              <svg class="select-arrow" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Current Semester</label>
+            <div class="input-wrap">
+              <select id="currentSemester">
+                <option value="">Select semester</option>
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+              </select>
+              <svg class="icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <svg class="select-arrow" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Password -->
@@ -660,13 +697,44 @@
       if (!faculty) {
         select.innerHTML = '<option value="">Select faculty first</option>';
         select.disabled  = true;
+        document.getElementById('yearSemesterRow').style.display = 'none';
         return;
       }
 
       const filtered = allPrograms.filter(p => p.faculty === faculty);
       select.disabled = false;
       select.innerHTML = '<option value="">Select your programme</option>' +
-        filtered.map(p => `<option value="${p.id}">${p.course}</option>`).join('');
+        filtered.map(p =>
+          `<option value="${p.id}" data-duration="${p.duration_years}">${p.course}</option>`
+        ).join('');
+
+      // Hide year/semester until a programme is actually chosen
+      document.getElementById('yearSemesterRow').style.display = 'none';
+    }
+
+    // ── SHOW YEAR/SEMESTER ONCE PROGRAMME IS SELECTED ──
+    function onProgramChange() {
+      const select   = document.getElementById('programSelect');
+      const row      = document.getElementById('yearSemesterRow');
+      const selected = select.options[select.selectedIndex];
+      const duration = parseInt(selected.getAttribute('data-duration') || 4);
+
+      if (!select.value) {
+        row.style.display = 'none';
+        return;
+      }
+
+      // Populate year options based on programme duration
+      const yearSelect = document.getElementById('currentYear');
+      yearSelect.innerHTML = '<option value="">Select year</option>' +
+        Array.from({ length: duration }, (_, i) =>
+          `<option value="${i + 1}">Year ${i + 1}</option>`
+        ).join('');
+
+      // Reset semester
+      document.getElementById('currentSemester').value = '';
+
+      row.style.display = 'grid';
     }
 
     // ── VALIDATION HELPERS ──
@@ -783,6 +851,8 @@
       const password        = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
       const programId       = document.getElementById('programSelect')?.value;
+      const currentYear     = document.getElementById('currentYear')?.value;
+      const currentSemester = document.getElementById('currentSemester')?.value;
 
       // ── Client-side validation ──
       if (password !== confirmPassword) {
@@ -795,9 +865,19 @@
         return;
       }
 
-      if (selectedRole === 'student' && !programId) {
-        showError('Please select your faculty and programme.');
-        return;
+      if (selectedRole === 'student') {
+        if (!programId) {
+          showError('Please select your faculty and programme.');
+          return;
+        }
+        if (!currentYear) {
+          showError('Please select your current year of study.');
+          return;
+        }
+        if (!currentSemester) {
+          showError('Please select your current semester.');
+          return;
+        }
       }
 
       const btn = document.getElementById('registerBtn');
@@ -808,11 +888,11 @@
         const payload = {
           username,
           email,
-          first_name:  firstName,
-          last_name:   lastName,
-          password:    password,
-          is_student:  selectedRole === 'student',
-          is_teacher:  selectedRole === 'teacher',
+          first_name: firstName,
+          last_name:  lastName,
+          password,
+          is_student: selectedRole === 'student',
+          is_teacher: selectedRole === 'teacher',
         };
 
         const response = await fetch(`${BASE_URL}/users/`, {
@@ -824,15 +904,13 @@
         const data = await response.json();
 
         if (!response.ok) {
-          // Django returns field-level errors as an object
           const firstError = Object.values(data)[0];
           showError(Array.isArray(firstError) ? firstError[0] : firstError);
           return;
         }
 
-        // Step 2 — If student, create enrollment
+        // Step 2 — If student, create enrollment with year and semester
         if (selectedRole === 'student' && programId) {
-          // Login first to get a token for the enrollment request
           const loginRes  = await fetch(`${BASE_URL}/auth/login/`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -848,14 +926,17 @@
                 'Authorization': `Token ${loginData.token}`,
               },
               body: JSON.stringify({
-                student: data.id,
-                program: parseInt(programId),
+                student:          data.id,
+                program:          parseInt(programId),
+                current_year:     parseInt(currentYear),
+                current_semester: parseInt(currentSemester),
               }),
             });
           }
         }
-         //
+
         sessionStorage.setItem('justRegistered', 'true');
+
         // Step 3 — Show success screen
         document.getElementById('registerForm').style.display  = 'none';
         document.getElementById('cardFooter').style.display    = 'none';

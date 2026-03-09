@@ -53,9 +53,6 @@ class Program(models.Model):
 
 
 class Enrollment(models.Model):
-    """
-    Junction table linking a Student (User) to a Program.
-    """
     student = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -67,16 +64,17 @@ class Enrollment(models.Model):
         on_delete=models.CASCADE,
         related_name="enrollments",
     )
-    date_enrolled = models.DateField(auto_now_add=True)
-    is_active     = models.BooleanField(default=True)
+    date_enrolled  = models.DateField(auto_now_add=True)
+    is_active      = models.BooleanField(default=True)
+    current_year     = models.PositiveSmallIntegerField(default=1)
+    current_semester = models.PositiveSmallIntegerField(default=1)
 
     class Meta:
         unique_together = ("student", "program")
         ordering = ["-date_enrolled"]
 
     def __str__(self):
-        return f"{self.student.username} → {self.program.course}"
-
+        return f"{self.student.username} → {self.program.course} (Yr {self.current_year} Sem {self.current_semester})"
 
 class Unit(models.Model):
     """

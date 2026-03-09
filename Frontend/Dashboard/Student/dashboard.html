@@ -884,6 +884,23 @@
         </div>
       </div>
 
+      <!-- MY UNITS -->
+      <div id="units" style="margin-top:2rem;">
+        <div class="section-header">
+          <h3>My Units</h3>
+          <button class="refresh-btn" onclick="loadUnits()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+            Refresh
+          </button>
+        </div>
+        <div id="unitsGrid" style="display:grid;gap:0.8rem;">
+          <!-- injected by JS -->
+        </div>
+      </div>
+
     </div>
   </main>
 
@@ -945,8 +962,8 @@
       setUserInfo();
       startClock();
       setGreeting();
-      loadSessions();
-      loadAttendanceHistory();
+      loadAttendanceHistory().then(() => loadSessions());
+      loadUnits();
     });
 
     // ── USER INFO ──
@@ -989,25 +1006,149 @@
       return data;
     }
 
-    // ── LOAD ACTIVE SESSIONS ──
+    // ── LOAD MY UNITS ──
+    async function loadUnits() {
+      const grid = document.getElementById('unitsGrid');
+      grid.innerHTML = `
+        <div class="skeleton" style="height:80px;border-radius:0.8rem;"></div>
+        <div class="skeleton" style="height:80px;border-radius:0.8rem;"></div>
+        <div class="skeleton" style="height:80px;border-radius:0.8rem;"></div>`;
+
+      try {
+        // Step 1 — Get student profile to find their ID
+        const users   = await apiFetch('/users/');
+        const profile = users.find(u => u.username === username);
+
+        if (!profile) {
+          grid.innerHTML = `<div class="empty-state"><p>Could not load your profile.</p></div>`;
+          return;
+        }
+
+        // Step 2 — Get the student's active enrollment
+        const enrollments = await apiFetch(`/enrollments/?student=${profile.id}`);
+
+        if (enrollments.length === 0) {
+          grid.innerHTML = `<div class="empty-state"><p>You are not enrolled in any programme.<br/>Contact admin.</p></div>`;
+          return;
+        }
+
+        // Use the most recent active enrollment
+        const enrollment     = enrollments.find(e => e.is_active) || enrollments[0];
+        const programId      = enrollment.program;
+        const currentYear    = enrollment.current_year;
+        const currentSem     = enrollment.current_semester;
+
+        // Step 3 — Fetch all units and filter by program + year + semester
+        const allUnits     = await apiFetch('/units/');
+        const studentUnits = allUnits.filter(u =>
+          u.program  === programId &&
+          u.year     === currentYear &&
+          u.semester === currentSem
+        );
+
+        if (studentUnits.length === 0) {
+          grid.innerHTML = `
+            <div class="empty-state">
+              <p>No units found for Year ${currentYear} Semester ${currentSem}.<br/>
+              Contact your programme coordinator.</p>
+            </div>`;
+          return;
+        }
+
+        // Step 4 — Render unit cards
+        grid.innerHTML = studentUnits.map((u, i) => `
+          <div class="session-card" style="animation-delay:${i * 0.07}s; display:block;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.8rem;">
+              <div>
+                <div class="session-unit">${u.name}</div>
+                <div class="session-code">${u.unit_code}</div>
+              </div>
+              <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+                <div class="session-meta-item">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                  </svg>
+                  Year ${u.year} · Sem ${u.semester}
+                </div>
+                ${u.teacher_name ? `
+                <div class="session-meta-item">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  ${u.teacher_name}
+                </div>` : ''}
+              </div>
+            </div>
+          </div>`).join('');
+
+        // Also update the sidebar units count
+        const unitsNavBadge = document.getElementById('unitsCount');
+        if (unitsNavBadge) unitsNavBadge.textContent = studentUnits.length;
+
+      } catch (err) {
+        grid.innerHTML = `<div class="empty-state"><p>Failed to load units. Is the server running?</p></div>`;
+      }
+    }
+
+    // ── LOAD ACTIVE SESSIONS (enrollment-aware) ──
     async function loadSessions() {
       const grid = document.getElementById('sessionsGrid');
       grid.innerHTML = `<div class="skeleton" style="height:90px;border-radius:0.8rem;"></div>
                         <div class="skeleton" style="height:90px;border-radius:0.8rem;margin-top:1rem;"></div>`;
       try {
-        const sessions = await apiFetch('/sessions/');
-        const now      = new Date();
+        // Step 1 — Get the logged-in user's profile to find their ID
+        const users   = await apiFetch('/users/');
+        const profile = users.find(u => u.username === username);
 
-        // Filter only currently active sessions
-        const active = sessions.filter(s => {
+        if (!profile) {
+          grid.innerHTML = `<div class="empty-state"><p>Could not load your profile. Please log in again.</p></div>`;
+          return;
+        }
+
+        // Step 2 — Get this student's enrollments
+        const enrollments = await apiFetch(`/enrollments/?student=${profile.id}`);
+
+        if (enrollments.length === 0) {
+          grid.innerHTML = `<div class="empty-state"><p>You are not enrolled in any programme yet.<br/>Contact admin to be enrolled.</p></div>`;
+          return;
+        }
+
+        // Step 3 — Collect all program IDs the student is enrolled in
+        const programIds = enrollments.map(e => e.program);
+
+        // Use the active enrollment's year and semester
+        const enrollment  = enrollments.find(e => e.is_active) || enrollments[0];
+        const currentYear = enrollment.current_year;
+        const currentSem  = enrollment.current_semester;
+
+        // Step 4 — Fetch all units and filter to student's current year and semester
+        const allUnits     = await apiFetch('/units/');
+        const studentUnits = allUnits.filter(u =>
+          programIds.includes(u.program) &&
+          u.year     === currentYear &&
+          u.semester === currentSem
+        );
+        const unitIds      = studentUnits.map(u => u.id);
+
+        if (unitIds.length === 0) {
+          grid.innerHTML = `<div class="empty-state"><p>No units found for your programme.</p></div>`;
+          return;
+        }
+
+        // Step 5 — Fetch all sessions and filter to only the student's units
+        const allSessions     = await apiFetch('/sessions/');
+        const now             = new Date();
+        const relevantActive  = allSessions.filter(s => {
           const start = new Date(s.start_time);
           const end   = new Date(s.end_time);
-          return now >= start && now <= end;
+          return unitIds.includes(s.unit) && now >= start && now <= end;
         });
 
-        document.getElementById('sessionCount').textContent = active.length;
+        document.getElementById('sessionCount').textContent = relevantActive.length;
 
-        if (active.length === 0) {
+        if (relevantActive.length === 0) {
           grid.innerHTML = `
             <div class="empty-state">
               <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -1021,15 +1162,19 @@
           return;
         }
 
-        grid.innerHTML = active.map((s, i) => {
-          const start   = new Date(s.start_time);
-          const end     = new Date(s.end_time);
+        grid.innerHTML = relevantActive.map((s, i) => {
+          const start    = new Date(s.start_time);
+          const end      = new Date(s.end_time);
           const isMarked = markedSessions.has(s.id);
+
+          // Find the unit name from our fetched units
+          const unit = studentUnits.find(u => u.id === s.unit);
+
           return `
           <div class="session-card ${isMarked ? 'marked' : ''}" style="animation-delay:${i * 0.1}s">
             <div>
-              <div class="session-unit">${s.unit_name || 'Unit #' + s.unit}</div>
-              <div class="session-code">${s.unit_code || 'CODE'}</div>
+              <div class="session-unit">${unit ? unit.name : 'Unit #' + s.unit}</div>
+              <div class="session-code">${unit ? unit.unit_code : ''}</div>
               <div class="session-meta">
                 <div class="session-meta-item">
                   <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -1050,9 +1195,7 @@
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.8rem;">
               <div class="session-status ${isMarked ? 'marked' : 'active'}">
-                ${isMarked
-                  ? '✓ Marked'
-                  : '<span></span> Live'}
+                ${isMarked ? '✓ Marked' : '<span></span> Live'}
               </div>
               <button class="btn-mark" onclick="openModal(${s.id})" ${isMarked ? 'disabled' : ''}>
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -1070,11 +1213,18 @@
       }
     }
 
-    // ── LOAD ATTENDANCE HISTORY ──
+    // ── LOAD ATTENDANCE HISTORY (student's own records only) ──
     async function loadAttendanceHistory() {
       const body = document.getElementById('historyBody');
       try {
-        const records = await apiFetch('/attendance/');
+        // Get the student's own profile first to filter by their ID
+        const users   = await apiFetch('/users/');
+        const profile = users.find(u => u.username === username);
+
+        // Fetch only this student's attendance records
+        const records = profile
+          ? await apiFetch(`/attendance/?student=${profile.id}`)
+          : await apiFetch('/attendance/');
 
         // Track already-marked sessions
         records.forEach(r => {
@@ -1211,8 +1361,8 @@
 
     // ── LOGOUT ──
     function logout() {
-    localStorage.clear();
-    window.location.href = '../../index.html';  
+      localStorage.clear();
+      window.location.href = '../../index.html';
     }
   </script>
 </body>
