@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MMU Attendance — My Profile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:      #00C37A;
+      --green-dark: #009F63;
+      --green-dim:  rgba(0,195,122,0.1);
+      --blue:       #4A9EFF;
+      --blue-dim:   rgba(74,158,255,0.1);
+      --navy:       #0B1C2C;
+      --navy-mid:   #112236;
+      --navy-light: #1A3352;
+      --navy-card:  #0F2030;
+      --white:      #F4F8FB;
+      --muted:      #7A97B0;
+      --error:      #FF5C5C;
+      --sidebar-w:  260px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--navy);
+      color: var(--white);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--navy-mid);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+    }
+
+    .sidebar-brand {
+      padding: 1.8rem 1.5rem 1.2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .sidebar-brand .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--green-dim);
+      border: 1px solid rgba(0,195,122,0.2);
+      border-radius: 2rem;
+      padding: 0.3rem 0.8rem;
+      font-size: 0.72rem;
+      color: var(--green);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+    }
+
+    .sidebar-brand .badge span {
+      width: 5px; height: 5px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.4; transform:scale(0.8); }
+    }
+
+    .sidebar-brand h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .sidebar-brand p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
+    .sidebar-user {
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .avatar-sm {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,195,122,0.3);
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--green-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--green);
+      overflow: hidden;
+    }
+
+    .avatar-sm img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .user-info .name { font-size: 0.88rem; font-weight: 500; }
+    .user-info .role {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 1rem 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .nav-label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 0.8rem 0.7rem 0.4rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.7rem 0.9rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: var(--muted);
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .nav-item:hover { background: var(--navy-light); color: var(--white); }
+    .nav-item.active {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(0,195,122,0.15);
+    }
+
+    .sidebar-footer {
+      padding: 1rem 0.8rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .btn-logout {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      background: transparent;
+      border: none;
+      border-radius: 0.5rem;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-logout:hover { background: rgba(255,92,92,0.1); color: var(--error); }
+
+    /* ── MAIN ── */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      height: 100vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: var(--navy-mid);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topbar h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .topbar p { font-size: 0.82rem; color: var(--muted); margin-top: 0.15rem; }
+
+    .content { padding: 2rem; flex: 1; max-width: 860px; }
+
+    /* ── PROFILE HERO ── */
+    .profile-hero {
+      background: var(--navy-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 1rem;
+      padding: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.5s ease forwards;
+    }
+
+    .profile-hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--green), transparent);
+    }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(16px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* ── AVATAR UPLOAD ── */
+    .avatar-upload {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .avatar-lg {
+      width: 110px; height: 110px;
+      border-radius: 50%;
+      border: 3px solid rgba(0,195,122,0.3);
+      background: var(--green-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--green);
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .avatar-lg:hover { border-color: var(--green); }
+
+    .avatar-lg img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .avatar-upload-btn {
+      position: absolute;
+      bottom: 4px; right: 4px;
+      width: 28px; height: 28px;
+      background: var(--green);
+      border: 2px solid var(--navy-card);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+      color: var(--navy);
+    }
+
+    .avatar-upload-btn:hover { background: var(--green-dark); }
+
+    #avatarInput { display: none; }
+
+    .profile-hero-info { flex: 1; }
+
+    .profile-hero-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.3rem;
+    }
+
+    .profile-hero-role {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--green-dim);
+      border: 1px solid rgba(0,195,122,0.2);
+      border-radius: 2rem;
+      padding: 0.25rem 0.8rem;
+      font-size: 0.75rem;
+      color: var(--green);
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+    }
+
+    .profile-hero-email {
+      font-size: 0.88rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ── INFO CARDS GRID ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .info-card {
+      background: var(--navy-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 0.8rem;
+      padding: 1.4rem;
+      animation: fadeUp 0.5s ease forwards;
+      opacity: 0;
+    }
+
+    .info-card:nth-child(1) { animation-delay: 0.1s; }
+    .info-card:nth-child(2) { animation-delay: 0.2s; }
+    .info-card:nth-child(3) { animation-delay: 0.3s; }
+    .info-card:nth-child(4) { animation-delay: 0.4s; }
+
+    .info-card-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .info-card-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .info-card-value.muted { color: var(--muted); font-size: 0.9rem; font-weight: 400; font-family: 'DM Sans', sans-serif; }
+
+    /* ── EDIT FORM ── */
+    .edit-section {
+      background: var(--navy-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 0.8rem;
+      padding: 1.6rem;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.5s 0.3s ease forwards;
+      opacity: 0;
+    }
+
+    .edit-section h4 {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .edit-section h4 svg { color: var(--green); }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    .form-group { margin-bottom: 1rem; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.4rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      background: var(--navy);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(0,195,122,0.1);
+    }
+
+    .form-group input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .form-group input::placeholder { color: rgba(122,151,176,0.5); }
+
+    .btn-save {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.8rem;
+      background: var(--green);
+      color: var(--navy);
+      border: none;
+      border-radius: 0.5rem;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 0.5rem;
+    }
+
+    .btn-save:hover  { background: var(--green-dark); }
+    .btn-save:active { transform: scale(0.98); }
+    .btn-save:disabled { opacity: 0.6; pointer-events: none; }
+
+    /* ── ENROLLMENT CARD (students only) ── */
+    .enrollment-card {
+      background: var(--navy-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 0.8rem;
+      padding: 1.4rem;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.5s 0.4s ease forwards;
+      opacity: 0;
+    }
+
+    .enrollment-card h4 {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .enrollment-card h4 svg { color: var(--blue); }
+
+    .enroll-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 0.88rem;
+    }
+
+    .enroll-row:last-child { border-bottom: none; }
+    .enroll-row span:first-child { color: var(--muted); }
+    .enroll-row span:last-child  { font-weight: 500; }
+
+    .enroll-badge {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(0,195,122,0.2);
+      padding: 0.2rem 0.6rem;
+      border-radius: 2rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    /* ── TEACHER UNITS SUMMARY ── */
+    .units-summary {
+      background: var(--navy-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 0.8rem;
+      padding: 1.4rem;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.5s 0.4s ease forwards;
+      opacity: 0;
+    }
+
+    .units-summary h4 {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .units-summary h4 svg { color: var(--blue); }
+
+    .unit-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--blue-dim);
+      border: 1px solid rgba(74,158,255,0.15);
+      color: var(--blue);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.3rem 0.7rem;
+      border-radius: 2rem;
+      margin: 0.25rem;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem; right: 2rem;
+      background: var(--navy-light);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0.7rem;
+      padding: 1rem 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-size: 0.88rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transform: translateY(4rem);
+      opacity: 0;
+      transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 999;
+    }
+
+    .toast.show   { transform: translateY(0); opacity: 1; }
+    .toast.success { border-color: rgba(0,195,122,0.3); }
+    .toast.error   { border-color: rgba(255,92,92,0.3); }
+
+    .toast-icon {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .toast.success .toast-icon { background: var(--green-dim); color: var(--green); }
+    .toast.error   .toast-icon { background: rgba(255,92,92,0.1); color: var(--error); }
+
+    .toast-title { font-weight: 600; }
+    .toast-msg   { font-size: 0.8rem; color: var(--muted); margin-top: 0.15rem; }
+
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 25%,
+        rgba(255,255,255,0.08) 50%,
+        rgba(255,255,255,0.04) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 0.4rem;
+    }
+
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .main { margin-left: 0; }
+      .content { padding: 1rem; }
+      .profile-hero { flex-direction: column; text-align: center; }
+      .info-grid { grid-template-columns: 1fr; }
+      .form-row  { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="badge"><span></span> MMU Kenya</div>
+      <h1>MMU Attendance</h1>
+      <p id="sidebarPortalLabel">Portal</p>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="avatar-sm" id="sidebarAvatar">?</div>
+      <div class="user-info">
+        <div class="name" id="sidebarUsername">Loading...</div>
+        <div class="role" id="sidebarRole">—</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-label">Navigation</div>
+      <a class="nav-item" id="navDashboard" onclick="goToDashboard()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        Dashboard
+      </a>
+      <a class="nav-item active">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        My Profile
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="logout()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h2>My Profile</h2>
+        <p id="topbarSub">View and update your account details</p>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- PROFILE HERO -->
+      <div class="profile-hero">
+        <div class="avatar-upload">
+          <div class="avatar-lg" id="avatarLg" onclick="document.getElementById('avatarInput').click()">
+            <span id="avatarInitial">?</span>
+          </div>
+          <div class="avatar-upload-btn" onclick="document.getElementById('avatarInput').click()" title="Change photo">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+          </div>
+          <input type="file" id="avatarInput" accept="image/*" onchange="handleAvatarUpload(event)"/>
+        </div>
+
+        <div class="profile-hero-info">
+          <div class="profile-hero-name" id="heroName">Loading...</div>
+          <div class="profile-hero-role" id="heroRole">—</div>
+          <div class="profile-hero-email">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            <span id="heroEmail">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- INFO CARDS -->
+      <div class="info-grid" id="infoGrid">
+        <div class="info-card">
+          <div class="info-card-label">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            Username
+          </div>
+          <div class="info-card-value" id="infoUsername">—</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Email
+          </div>
+          <div class="info-card-value" id="infoEmail">—</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Account Type
+          </div>
+          <div class="info-card-value" id="infoRole">—</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Member Since
+          </div>
+          <div class="info-card-value" id="infoJoined">—</div>
+        </div>
+      </div>
+
+      <!-- ENROLLMENT INFO (students only) -->
+      <div class="enrollment-card" id="enrollmentCard" style="display:none;">
+        <h4>
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+            <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+          </svg>
+          Enrolment Details
+        </h4>
+        <div class="enroll-row">
+          <span>Programme</span>
+          <span id="enrolProg">—</span>
+        </div>
+        <div class="enroll-row">
+          <span>Faculty</span>
+          <span id="enrolFaculty">—</span>
+        </div>
+        <div class="enroll-row">
+          <span>Current Year</span>
+          <span id="enrolYear">—</span>
+        </div>
+        <div class="enroll-row">
+          <span>Current Semester</span>
+          <span id="enrolSem">—</span>
+        </div>
+        <div class="enroll-row">
+          <span>Status</span>
+          <span id="enrolStatus">—</span>
+        </div>
+      </div>
+
+      <!-- UNITS SUMMARY (teachers only) -->
+      <div class="units-summary" id="unitsSummary" style="display:none;">
+        <h4>
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+          Units I Teach
+        </h4>
+        <div id="myUnitChips">
+          <div class="skeleton" style="height:32px;width:60%;"></div>
+        </div>
+      </div>
+
+      <!-- EDIT PROFILE FORM -->
+      <div class="edit-section">
+        <h4>
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Edit Profile
+        </h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="editFirstName" placeholder="First name"/>
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="editLastName" placeholder="Last name"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="editEmail" placeholder="Email address"/>
+        </div>
+        <div class="form-group">
+          <label>Username (cannot be changed)</label>
+          <input type="text" id="editUsername" disabled/>
+        </div>
+        <button class="btn-save" id="saveBtn" onclick="saveProfile()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Save Changes
+        </button>
+      </div>
+
+      <!-- CHANGE PASSWORD FORM -->
+      <div class="edit-section">
+        <h4>
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Change Password
+        </h4>
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" id="currentPassword" placeholder="Your current password"/>
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" id="newPassword" placeholder="Min. 8 characters"/>
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <input type="password" id="confirmPassword" placeholder="Repeat new password"/>
+        </div>
+        <button class="btn-save" id="pwdBtn" onclick="changePassword()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Update Password
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <div class="toast-icon" id="toastIcon"></div>
+    <div class="toast-body">
+      <div class="toast-title" id="toastTitle"></div>
+      <div class="toast-msg"   id="toastMsg"></div>
+    </div>
+  </div>
+
+  <script>
+    const BASE_URL = 'http://127.0.0.1:8000/api';
+    const token    = localStorage.getItem('token');
+    const username = localStorage.getItem('username') || '';
+
+    // ── AUTH GUARD ──
+    if (!token) window.location.href = 'index.html';
+
+    let profile = null;
+
+    // ── INIT ──
+    document.addEventListener('DOMContentLoaded', () => {
+      loadProfile();
+    });
+
+    // ── API HELPER ──
+    async function apiFetch(endpoint, method = 'GET', body = null) {
+      const opts = {
+        method,
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Token ${token}`,
+        },
+      };
+      if (body) opts.body = JSON.stringify(body);
+      const res  = await fetch(`${BASE_URL}${endpoint}`, opts);
+      const data = await res.json();
+      if (!res.ok) throw data;
+      return data;
+    }
+
+    // ── LOAD PROFILE ──
+    async function loadProfile() {
+      try {
+        const users = await apiFetch('/users/');
+        profile     = users.find(u => u.username === username);
+
+        if (!profile) {
+          showToast('error', 'Error', 'Could not load profile.');
+          return;
+        }
+
+        const isTeacher = profile.is_teacher;
+        const isStudent = profile.is_student;
+        const fullName  = `${profile.first_name} ${profile.last_name}`.trim() || profile.username;
+        const role      = isTeacher ? 'Teacher' : 'Student';
+
+        // ── Sidebar ──
+        document.getElementById('sidebarPortalLabel').textContent = isTeacher ? 'Instructor View' : 'Student Portal';
+        document.getElementById('sidebarUsername').textContent    = username;
+        document.getElementById('sidebarRole').textContent        = role;
+
+        // ── Hero ──
+        document.getElementById('heroName').textContent  = fullName;
+        document.getElementById('heroRole').textContent  = role;
+        document.getElementById('heroEmail').textContent = profile.email || 'No email set';
+        document.getElementById('avatarInitial').textContent = fullName.charAt(0).toUpperCase();
+
+        // ── Restore saved avatar from localStorage ──
+        const savedAvatar = localStorage.getItem(`avatar_${profile.id}`);
+        if (savedAvatar) setAvatarImage(savedAvatar);
+
+        // ── Info cards ──
+        document.getElementById('infoUsername').textContent = profile.username;
+        document.getElementById('infoEmail').textContent    = profile.email || '—';
+        document.getElementById('infoRole').textContent     = role;
+        document.getElementById('infoJoined').textContent   = 'MMU Member'; // Django default user has no date_joined exposed unless serialized
+
+        // ── Edit form pre-fill ──
+        document.getElementById('editFirstName').value = profile.first_name || '';
+        document.getElementById('editLastName').value  = profile.last_name  || '';
+        document.getElementById('editEmail').value     = profile.email      || '';
+        document.getElementById('editUsername').value  = profile.username;
+
+        // ── Role-specific sections ──
+        if (isStudent) {
+          document.getElementById('enrollmentCard').style.display = 'block';
+          loadEnrollment(profile.id);
+        }
+
+        if (isTeacher) {
+          document.getElementById('unitsSummary').style.display = 'block';
+          loadTeacherUnits(profile.id);
+        }
+
+      } catch (err) {
+        showToast('error', 'Failed', 'Could not load profile data.');
+      }
+    }
+
+    // ── LOAD ENROLLMENT (student) ──
+    async function loadEnrollment(studentId) {
+      try {
+        const enrollments = await apiFetch(`/enrollments/?student=${studentId}`);
+        const programs    = await apiFetch('/programs/');
+
+        if (enrollments.length === 0) {
+          document.getElementById('enrolProg').textContent    = 'Not enrolled';
+          document.getElementById('enrolFaculty').textContent = '—';
+          document.getElementById('enrolYear').textContent    = '—';
+          document.getElementById('enrolSem').textContent     = '—';
+          document.getElementById('enrolStatus').textContent  = '—';
+          return;
+        }
+
+        const enrollment = enrollments.find(e => e.is_active) || enrollments[0];
+        const program    = programs.find(p => p.id === enrollment.program);
+
+        const facultyMap = {
+          FoCIT:  'Faculty of Computing and Information Technology',
+          FAMECO: 'Faculty of Media and Economics',
+          FoET:   'Faculty of Engineering and Technology',
+          FoBE:   'Faculty of Business and Economics',
+          FoST:   'Faculty of Science and Technology',
+          FoSST:  'Faculty of Social Sciences and Technology',
+        };
+
+        document.getElementById('enrolProg').textContent    = program ? program.course : '—';
+        document.getElementById('enrolFaculty').textContent = program ? (facultyMap[program.faculty] || program.faculty) : '—';
+        document.getElementById('enrolYear').textContent    = `Year ${enrollment.current_year}`;
+        document.getElementById('enrolSem').textContent     = `Semester ${enrollment.current_semester}`;
+        document.getElementById('enrolStatus').innerHTML    = enrollment.is_active
+          ? `<span class="enroll-badge">Active</span>`
+          : `<span style="color:var(--muted)">Inactive</span>`;
+
+      } catch (err) {
+        document.getElementById('enrolProg').textContent = 'Failed to load';
+      }
+    }
+
+    // ── LOAD TEACHER UNITS ──
+    async function loadTeacherUnits(teacherId) {
+      const container = document.getElementById('myUnitChips');
+      try {
+        const units   = await apiFetch('/units/');
+        const myUnits = units.filter(u => u.teacher === teacherId);
+
+        if (myUnits.length === 0) {
+          container.innerHTML = `<span style="font-size:0.85rem;color:var(--muted);">No units claimed yet. Go to your dashboard to claim units.</span>`;
+          return;
+        }
+
+        container.innerHTML = myUnits.map(u => `
+          <span class="unit-chip">
+            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+            ${u.unit_code} — ${u.name}
+          </span>`).join('');
+
+      } catch (err) {
+        container.innerHTML = `<span style="color:var(--muted);font-size:0.85rem;">Failed to load units.</span>`;
+      }
+    }
+
+    // ── AVATAR UPLOAD ──
+    function handleAvatarUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+        showToast('error', 'File Too Large', 'Please choose an image under 2MB.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result;
+        setAvatarImage(base64);
+
+        // Persist to localStorage keyed by user ID
+        if (profile) {
+          localStorage.setItem(`avatar_${profile.id}`, base64);
+
+          // Also update sidebar avatar
+          updateSidebarAvatar(base64);
+        }
+
+        showToast('success', 'Photo Updated', 'Your profile photo has been saved.');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function setAvatarImage(base64) {
+      const lg = document.getElementById('avatarLg');
+      lg.innerHTML = `<img src="${base64}" alt="Profile photo"/>`;
+
+      updateSidebarAvatar(base64);
+    }
+
+    function updateSidebarAvatar(base64) {
+      const sidebar = document.getElementById('sidebarAvatar');
+      sidebar.innerHTML = `<img src="${base64}" alt="avatar"/>`;
+    }
+
+    // ── SAVE PROFILE ──
+    async function saveProfile() {
+      if (!profile) return;
+
+      const firstName = document.getElementById('editFirstName').value.trim();
+      const lastName  = document.getElementById('editLastName').value.trim();
+      const email     = document.getElementById('editEmail').value.trim();
+
+      if (!firstName || !lastName || !email) {
+        showToast('error', 'Missing Fields', 'Please fill in all fields.');
+        return;
+      }
+
+      const btn = document.getElementById('saveBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Saving...';
+
+      try {
+        await apiFetch(`/users/${profile.id}/`, 'PATCH', {
+          first_name: firstName,
+          last_name:  lastName,
+          email,
+        });
+
+        // Update displayed name
+        const fullName = `${firstName} ${lastName}`.trim();
+        document.getElementById('heroName').textContent     = fullName;
+        document.getElementById('avatarInitial').textContent = fullName.charAt(0).toUpperCase();
+        document.getElementById('infoEmail').textContent    = email;
+        document.getElementById('heroEmail').textContent    = email;
+
+        showToast('success', 'Profile Updated', 'Your details have been saved.');
+
+      } catch (err) {
+        const msg = Object.values(err)[0];
+        showToast('error', 'Failed', Array.isArray(msg) ? msg[0] : msg || 'Could not save profile.');
+      } finally {
+        btn.disabled    = false;
+        btn.innerHTML   = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Save Changes`;
+      }
+    }
+
+    // ── CHANGE PASSWORD ──
+    async function changePassword() {
+      const currentPwd = document.getElementById('currentPassword').value;
+      const newPwd     = document.getElementById('newPassword').value;
+      const confirmPwd = document.getElementById('confirmPassword').value;
+
+      if (!currentPwd || !newPwd || !confirmPwd) {
+        showToast('error', 'Missing Fields', 'Please fill in all three password fields.');
+        return;
+      }
+
+      if (newPwd.length < 8) {
+        showToast('error', 'Too Short', 'New password must be at least 8 characters.');
+        return;
+      }
+
+      if (newPwd !== confirmPwd) {
+        showToast('error', 'Mismatch', 'New passwords do not match.');
+        return;
+      }
+
+      if (currentPwd === newPwd) {
+        showToast('error', 'Same Password', 'New password must be different from your current one.');
+        return;
+      }
+
+      const btn = document.getElementById('pwdBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Verifying...';
+
+      try {
+        // Step 1 — Verify current password by attempting a login
+        const verifyRes = await fetch(`${BASE_URL}/auth/login/`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ username, password: currentPwd }),
+        });
+
+        if (!verifyRes.ok) {
+          showToast('error', 'Wrong Password', 'Your current password is incorrect.');
+          return;
+        }
+
+        btn.textContent = 'Updating...';
+
+        // Step 2 — Current password verified, now update to new password
+        await apiFetch(`/users/${profile.id}/`, 'PATCH', { password: newPwd });
+
+        // Clear all fields on success
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value     = '';
+        document.getElementById('confirmPassword').value = '';
+
+        showToast('success', 'Password Updated', 'Your password has been changed successfully.');
+
+      } catch (err) {
+        showToast('error', 'Failed', 'Could not update password. Please try again.');
+      } finally {
+        btn.disabled  = false;
+        btn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Update Password`;
+      }
+    }
+
+    // ── NAVIGATION ──
+    function goToDashboard() {
+      const isTeacher = profile && profile.is_teacher;
+      window.location.href = isTeacher
+        ? 'dashboard/teacher/dashboard.html'
+        : 'dashboard/student/dashboard.html';
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    }
+
+    // ── TOAST ──
+    function showToast(type, title, msg) {
+      const toast = document.getElementById('toast');
+      const icon  = document.getElementById('toastIcon');
+      toast.className = `toast ${type}`;
+      document.getElementById('toastTitle').textContent = title;
+      document.getElementById('toastMsg').textContent   = msg;
+      icon.innerHTML = type === 'success'
+        ? `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`
+        : `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+  </script>
+</body>
+</html>

@@ -3,7 +3,8 @@ from .models import User, Program, Enrollment, Unit, Session, Attendance
 
 
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    # required=False so PATCH requests without a password don't fail
+    password = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model  = User
@@ -11,12 +12,25 @@ class UserSerializer(serializers.ModelSerializer):
                   "password", "is_teacher", "is_student"]
 
     def create(self, validated_data):
+        # Password is required on creation — hash it properly
         password = validated_data.pop('password')
         user     = User(**validated_data)
-        user.set_password(password)  # ← hashes the password correctly
+        user.set_password(password)
         user.save()
         return user
 
+    def update(self, instance, validated_data):
+        # If a new password was provided, hash it before saving
+        password = validated_data.pop('password', None)
+        if password:
+            instance.set_password(password)
+
+        # Update all other fields normally
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 
 class ProgramSerializer(serializers.ModelSerializer):
     class Meta:
