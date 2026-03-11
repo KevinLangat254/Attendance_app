@@ -1277,7 +1277,7 @@
     const username = localStorage.getItem('username') || 'Teacher';
 
     // Auth guard
-    if (!token) window.location.href = '../index.html';
+    if (!token) window.location.href = '../../index.html';
 
     // ── INIT ──
     document.addEventListener('DOMContentLoaded', () => {
@@ -1288,9 +1288,21 @@
       loadUnits();
     });
 
-    function setUserInfo() {
+    async function setUserInfo() {
       document.getElementById('sidebarUsername').textContent = username;
       document.getElementById('avatarInitial').textContent  = username.charAt(0).toUpperCase();
+
+      // Load avatar from DB if the user has uploaded one
+      try {
+        const users = await apiFetch('/users/');
+        const me    = users.find(u => u.username === username);
+        if (me && me.avatar_url) {
+          const el = document.getElementById('avatarInitial');
+          el.textContent   = '';
+          el.style.padding = '0';
+          el.innerHTML     = `<img src="${me.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="avatar"/>`;
+        }
+      } catch (_) {}
     }
 
     function startClock() {
@@ -1829,7 +1841,7 @@
     // ── LOGOUT ──
     function logout() {
       localStorage.clear();
-      window.location.href = '../index.html';
+      window.location.href = '../../index.html';
     }
 
     // ── NAVIGATION ──

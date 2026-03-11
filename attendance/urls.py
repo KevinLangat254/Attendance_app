@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/units/<int:unit_id>/claim/',   views.claim_unit,   name='claim-unit'),
     path('api/units/<int:unit_id>/unclaim/', views.unclaim_unit, name='unclaim-unit'),
     path('api/mark-attendance/', views.MarkAttendanceView.as_view()),
+    path('api/upload-avatar/', views.upload_avatar, name='upload-avatar'),
 
     # Router URLs
     path('api/', include(router.urls)),

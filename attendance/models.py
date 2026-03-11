@@ -20,6 +20,7 @@ class User(AbstractUser):
     """
     is_teacher = models.BooleanField(default=False)
     is_student = models.BooleanField(default=False)
+    avatar     = models.ImageField(upload_to='avatars/', null=True, blank=True)
 
     def __str__(self):
         return self.username

@@ -1,18 +1,25 @@
 from rest_framework import serializers
 from .models import User, Program, Enrollment, Unit, Session, Attendance
 
-
 class UserSerializer(serializers.ModelSerializer):
     # required=False so PATCH requests without a password don't fail
-    password = serializers.CharField(write_only=True, required=False)
+    password    = serializers.CharField(write_only=True, required=False)
+    avatar_url  = serializers.SerializerMethodField()
 
     class Meta:
         model  = User
         fields = ["id", "username", "email", "first_name", "last_name",
-                  "password", "is_teacher", "is_student"]
+                  "password", "is_teacher", "is_student", "avatar_url"]
+
+    def get_avatar_url(self, obj):
+        if obj.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
+        return None
 
     def create(self, validated_data):
-        # Password is required on creation — hash it properly
         password = validated_data.pop('password')
         user     = User(**validated_data)
         user.set_password(password)
@@ -20,17 +27,15 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
-        # If a new password was provided, hash it before saving
         password = validated_data.pop('password', None)
         if password:
             instance.set_password(password)
-
-        # Update all other fields normally
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-
         instance.save()
         return instance
+    
+
 
 class ProgramSerializer(serializers.ModelSerializer):
     class Meta:

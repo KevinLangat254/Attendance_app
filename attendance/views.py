@@ -2,7 +2,7 @@ import math
 from django.utils        import timezone
 from rest_framework      import viewsets, status
 from rest_framework.views       import APIView
-from rest_framework.decorators  import api_view, permission_classes
+from rest_framework.decorators  import api_view, parser_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response    import Response
 from django_filters.rest_framework import DjangoFilterBackend
@@ -12,6 +12,8 @@ from .serializers import (
     UserSerializer, ProgramSerializer, EnrollmentSerializer,
     UnitSerializer, SessionSerializer, AttendanceSerializer,
 )
+from rest_framework.parsers import MultiPartParser, FormParser
+
 
 
 # ════════════════════════════════════════════════════════════
@@ -228,3 +230,22 @@ class MarkAttendanceView(APIView):
             },
             status=status.HTTP_201_CREATED
         )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
+def upload_avatar(request):
+    user = request.user
+    if 'avatar' not in request.FILES:
+        return Response({'error': 'No file provided.'}, status=400)
+
+    # Delete old avatar file from disk before saving new one
+    if user.avatar:
+        user.avatar.delete(save=False)
+
+    user.avatar = request.FILES['avatar']
+    user.save()
+
+    avatar_url = request.build_absolute_uri(user.avatar.url)
+    return Response({'avatar_url': avatar_url})
