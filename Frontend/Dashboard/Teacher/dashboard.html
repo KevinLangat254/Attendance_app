@@ -977,7 +977,7 @@
         </svg>
         My Units
       </a>
-      <a class="nav-item" href="../../profile.html">
+      <a class="nav-item" href="/profile.html">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
           <circle cx="12" cy="7" r="4"/>
@@ -1277,7 +1277,7 @@
     const username = localStorage.getItem('username') || 'Teacher';
 
     // Auth guard
-    if (!token) window.location.href = '../../index.html';
+    if (!token) window.location.href = '/';
 
     // ── INIT ──
     document.addEventListener('DOMContentLoaded', () => {
@@ -1841,7 +1841,7 @@
     // ── LOGOUT ──
     function logout() {
       localStorage.clear();
-      window.location.href = '../../index.html';
+      window.location.href = '/';
     }
 
     // ── NAVIGATION ──

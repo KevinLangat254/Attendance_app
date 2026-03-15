@@ -842,7 +842,7 @@
     const token = localStorage.getItem('token');
     const uname = localStorage.getItem('username') || '';
 
-    if (!token) window.location.href = 'index.html';
+    if (!token) window.location.href = '/';
 
     let profile = null;
 
@@ -1064,11 +1064,11 @@
     function goToDashboard() {
       if (!profile) { window.history.back(); return; }
       window.location.href = profile.is_teacher
-        ? 'dashboard/teacher/dashboard.html'
-        : 'dashboard/student/dashboard.html';
+        ? '/dashboard/teacher/dashboard.html'
+        : '/dashboard/student/dashboard.html';
     }
 
-    function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+    function logout() { localStorage.clear(); window.location.href = '/'; }
 
     // ── Toast ──
     function toast(type, title, msg) {
