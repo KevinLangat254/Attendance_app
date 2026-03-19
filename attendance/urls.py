@@ -3,12 +3,12 @@ from rest_framework.routers import DefaultRouter
 from . import views
 
 router = DefaultRouter()
-router.register(r"users",       views.UserViewSet)
+router.register(r"users",       views.UserViewSet,       basename="user")
+router.register(r"enrollments", views.EnrollmentViewSet, basename="enrollment")
+router.register(r"attendance",  views.AttendanceViewSet, basename="attendance")
 router.register(r"programs",    views.ProgramViewSet)
-router.register(r"enrollments", views.EnrollmentViewSet)
 router.register(r"units",       views.UnitViewSet)
 router.register(r"sessions",    views.SessionViewSet)
-router.register(r"attendance",  views.AttendanceViewSet)
 
 urlpatterns = [
     # Custom endpoints — must be before router.urls
