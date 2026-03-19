@@ -939,6 +939,225 @@
       .topbar { padding: 1rem; }
       .stat-grid { grid-template-columns: 1fr 1fr; }
     }
+
+    /* ── UNIT STUDENTS PANEL ── */
+    .students-panel-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(3px);
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .students-panel-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .students-panel {
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: 420px;
+      background: var(--navy-mid);
+      border-left: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 301;
+    }
+
+    .students-panel-overlay.show .students-panel {
+      transform: translateX(0);
+    }
+
+    .students-panel-head {
+      padding: 1.4rem 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .students-panel-head h4 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .students-panel-head p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
+    .panel-close {
+      width: 30px; height: 30px;
+      border-radius: 0.4rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      transition: all 0.18s;
+    }
+
+    .panel-close:hover { background: rgba(255,92,92,0.1); color: var(--error); }
+
+    .students-panel-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .panel-stat {
+      padding: 1rem;
+      text-align: center;
+      border-right: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .panel-stat:last-child { border-right: none; }
+
+    .panel-stat-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .panel-stat-val.green { color: var(--green); }
+    .panel-stat-val.blue  { color: var(--blue); }
+    .panel-stat-val.orange { color: var(--warning); }
+
+    .panel-stat-label { font-size: 0.7rem; color: var(--muted); margin-top: 0.15rem; }
+
+    .students-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem 0;
+    }
+
+    .students-list::-webkit-scrollbar { width: 4px; }
+    .students-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+    .student-row {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 0.85rem 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+
+    .student-row:last-child { border-bottom: none; }
+    .student-row:hover { background: rgba(255,255,255,0.02); }
+
+    .student-row-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--navy-light);
+      border: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.82rem; font-weight: 700;
+      color: var(--muted); flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .student-row-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+    .student-row-info { flex: 1; min-width: 0; }
+
+    .student-row-name {
+      font-size: 0.87rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .student-row-username {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.1rem;
+    }
+
+    .student-row-rate {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.3rem;
+      flex-shrink: 0;
+    }
+
+    .rate-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .rate-value.good    { color: var(--green); }
+    .rate-value.average { color: var(--warning); }
+    .rate-value.poor    { color: var(--error); }
+
+    .rate-bar {
+      width: 60px; height: 4px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .rate-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+
+    .rate-bar-fill.good    { background: var(--green); }
+    .rate-bar-fill.average { background: var(--warning); }
+    .rate-bar-fill.poor    { background: var(--error); }
+
+    .btn-view-students {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.9rem;
+      background: var(--blue-dim);
+      border: 1px solid rgba(74,158,255,0.2);
+      border-radius: 0.4rem;
+      color: var(--blue);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+
+    .btn-view-students:hover { background: rgba(74,158,255,0.2); }
+
+    .panel-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem;
+      gap: 1rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .panel-spinner {
+      width: 32px; height: 32px;
+      border: 2px solid rgba(74,158,255,0.15);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
   </style>
 </head>
 <body>
@@ -1581,12 +1800,23 @@
               <span class="unit-tag mine">✓ My Unit</span>
             </div>
           </div>
-          <button class="btn-unclaim" onclick="unclaimUnit(${u.id}, this)">
-            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-            Remove
-          </button>
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            <button class="btn-view-students" onclick="openStudentsPanel(${u.id}, '${u.name}', '${u.unit_code}', ${u.program}, ${u.year}, ${u.semester})">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              Students
+            </button>
+            <button class="btn-unclaim" onclick="unclaimUnit(${u.id}, this)">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+              Remove
+            </button>
+          </div>
         </div>`).join('');
     }
 
@@ -1867,6 +2097,157 @@
         main.scrollTo({ top: targetTop, behavior: 'smooth' });
       }
     }
+
+    // ── UNIT STUDENTS PANEL ──
+    async function openStudentsPanel(unitId, unitName, unitCode, programId, year, semester) {
+      document.getElementById('panelUnitName').textContent = unitName;
+      document.getElementById('panelUnitCode').textContent = unitCode;
+      document.getElementById('panelTotalStudents').textContent = '—';
+      document.getElementById('panelAvgRate').textContent     = '—';
+      document.getElementById('panelTotalSessions').textContent = '—';
+      document.getElementById('studentsList').innerHTML = `
+        <div class="panel-loading">
+          <div class="panel-spinner"></div>
+          Loading students...
+        </div>`;
+
+      document.getElementById('studentsPanelOverlay').classList.add('show');
+
+      try {
+        // Fetch all needed data in parallel
+        const [allUsers, allEnrollments, allSessions, allAttendance] = await Promise.all([
+          apiFetch('/users/'),
+          apiFetch('/enrollments/'),
+          apiFetch('/sessions/'),
+          apiFetch('/attendance/'),
+        ]);
+
+        // Students enrolled in this unit's program, year and semester
+        const enrolled = allEnrollments.filter(e =>
+          e.program        === programId &&
+          e.current_year   === year &&
+          e.current_semester === semester &&
+          e.is_active
+        );
+
+        // Sessions for this unit
+        const unitSessions = allSessions.filter(s => s.unit === unitId);
+        const totalSessions = unitSessions.length;
+        const sessionIds    = unitSessions.map(s => s.id);
+
+        // Build student rows
+        const rows = enrolled.map(e => {
+          const user = allUsers.find(u => u.id === e.student);
+          if (!user) return null;
+
+          // Attendance records for this student in this unit's sessions
+          const studentRecords = allAttendance.filter(a =>
+            a.student === e.student && sessionIds.includes(a.session)
+          );
+
+          const attended = studentRecords.filter(a => a.status === 'PRESENT').length;
+          const rate     = totalSessions > 0 ? Math.round((attended / totalSessions) * 100) : 0;
+          const rateClass = rate >= 75 ? 'good' : rate >= 50 ? 'average' : 'poor';
+          const fullName  = `${user.first_name} ${user.last_name}`.trim() || user.username;
+          const initials  = fullName.charAt(0).toUpperCase();
+          const avatarHtml = user.avatar_url
+            ? `<img src="${user.avatar_url}" alt="avatar"/>`
+            : initials;
+
+          return { fullName, username: user.username, avatarHtml, attended, totalSessions, rate, rateClass };
+        }).filter(Boolean);
+
+        // Sort by attendance rate descending
+        rows.sort((a, b) => b.rate - a.rate);
+
+        // Stats
+        const avgRate = rows.length
+          ? Math.round(rows.reduce((sum, r) => sum + r.rate, 0) / rows.length)
+          : 0;
+
+        document.getElementById('panelTotalStudents').textContent  = enrolled.length;
+        document.getElementById('panelAvgRate').textContent        = avgRate + '%';
+        document.getElementById('panelTotalSessions').textContent  = totalSessions;
+
+        if (rows.length === 0) {
+          document.getElementById('studentsList').innerHTML = `
+            <div class="report-empty" style="padding:3rem;text-align:center;color:var(--muted);">
+              <p>No students enrolled in this unit yet.</p>
+            </div>`;
+          return;
+        }
+
+        document.getElementById('studentsList').innerHTML = rows.map(r => `
+          <div class="student-row">
+            <div class="student-row-avatar">${r.avatarHtml}</div>
+            <div class="student-row-info">
+              <div class="student-row-name">${r.fullName}</div>
+              <div class="student-row-username">@${r.username} · ${r.attended}/${r.totalSessions} sessions</div>
+            </div>
+            <div class="student-row-rate">
+              <div class="rate-value ${r.rateClass}">${r.rate}%</div>
+              <div class="rate-bar">
+                <div class="rate-bar-fill ${r.rateClass}" style="width:${r.rate}%"></div>
+              </div>
+            </div>
+          </div>`).join('');
+
+      } catch (err) {
+        document.getElementById('studentsList').innerHTML = `
+          <div style="padding:2rem;text-align:center;color:var(--error);font-size:0.85rem;">
+            Failed to load students. Is the server running?
+          </div>`;
+      }
+    }
+
+    function closeStudentsPanel(event) {
+      // Close only if clicking the overlay background, not the panel itself
+      if (event && event.target !== document.getElementById('studentsPanelOverlay')) return;
+      document.getElementById('studentsPanelOverlay').classList.remove('show');
+    }
+
   </script>
+
+  <!-- UNIT STUDENTS PANEL -->
+  <div class="students-panel-overlay" id="studentsPanelOverlay" onclick="closeStudentsPanel(event)">
+    <div class="students-panel" id="studentsPanel">
+
+      <div class="students-panel-head">
+        <div>
+          <h4 id="panelUnitName">Unit Students</h4>
+          <p id="panelUnitCode">—</p>
+        </div>
+        <div class="panel-close" onclick="closeStudentsPanel(null)">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="students-panel-stats" id="panelStats">
+        <div class="panel-stat">
+          <div class="panel-stat-val blue" id="panelTotalStudents">—</div>
+          <div class="panel-stat-label">Enrolled</div>
+        </div>
+        <div class="panel-stat">
+          <div class="panel-stat-val green" id="panelAvgRate">—</div>
+          <div class="panel-stat-label">Avg Attendance</div>
+        </div>
+        <div class="panel-stat">
+          <div class="panel-stat-val orange" id="panelTotalSessions">—</div>
+          <div class="panel-stat-label">Sessions</div>
+        </div>
+      </div>
+
+      <div class="students-list" id="studentsList">
+        <div class="panel-loading">
+          <div class="panel-spinner"></div>
+          Loading students...
+        </div>
+      </div>
+
+    </div>
+  </div>
+
 </body>
 </html>
