@@ -17,8 +17,8 @@
       --muted:      #7A97B0;
       --error:      #FF5C5C;
     }
-    body { font-family: 'DM Sans', sans-serif; background-color: var(--navy); color: var(--white); min-height: 100vh; display: flex; overflow: hidden; }
-    .left-panel { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 3rem; position: relative; overflow: hidden; }
+    body { font-family: 'DM Sans', sans-serif; background-color: var(--navy); color: var(--white); min-height: 100vh; display: flex; overflow-x: hidden; overflow-y: auto; }
+    .left-panel { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 3rem; position: relative; }
     .left-panel::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 20% 80%, rgba(0,195,122,0.15) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 10%, rgba(0,195,122,0.08) 0%, transparent 60%); pointer-events: none; }
     .grid-overlay { position: absolute; inset: 0; background-image: linear-gradient(rgba(0,195,122,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,195,122,0.04) 1px, transparent 1px); background-size: 48px 48px; pointer-events: none; }
     .brand { position: relative; z-index: 1; }
@@ -157,7 +157,7 @@
   </div>
 
   <script>
-    const BASE_URL = "http://127.0.0.1:8000/api";
+    const BASE_URL = window.location.origin + "/api";
 
     // ── Auto-redirect if already logged in ──
     const existingToken  = localStorage.getItem('token');

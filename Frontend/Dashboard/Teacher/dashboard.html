@@ -1491,7 +1491,7 @@
   </div>
 
   <script>
-    const BASE_URL = "http://127.0.0.1:8000/api";
+    const BASE_URL = window.location.origin + "/api";
     const token    = localStorage.getItem('token');
     const username = localStorage.getItem('username') || 'Teacher';
 
