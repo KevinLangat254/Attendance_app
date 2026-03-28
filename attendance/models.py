@@ -15,12 +15,12 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 
 class User(AbstractUser):
     """
-    Custom user model supporting both Teacher and Student roles.
+    Custom user model supporting both Lecturer and Student roles.
     A single user can hold both roles simultaneously.
     """
-    is_teacher = models.BooleanField(default=False)
-    is_student = models.BooleanField(default=False)
-    avatar     = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    is_lecturer = models.BooleanField(default=False)
+    is_student  = models.BooleanField(default=False)
+    avatar      = models.ImageField(upload_to='avatars/', null=True, blank=True)
 
     def __str__(self):
         return self.username
@@ -65,8 +65,8 @@ class Enrollment(models.Model):
         on_delete=models.CASCADE,
         related_name="enrollments",
     )
-    date_enrolled  = models.DateField(auto_now_add=True)
-    is_active      = models.BooleanField(default=True)
+    date_enrolled    = models.DateField(auto_now_add=True)
+    is_active        = models.BooleanField(default=True)
     current_year     = models.PositiveSmallIntegerField(default=1)
     current_semester = models.PositiveSmallIntegerField(default=1)
 
@@ -77,9 +77,10 @@ class Enrollment(models.Model):
     def __str__(self):
         return f"{self.student.username} → {self.program.course} (Yr {self.current_year} Sem {self.current_semester})"
 
+
 class Unit(models.Model):
     """
-    A course/unit within a Program, taught by a Teacher.
+    A course/unit within a Program, taught by a Lecturer.
     Maps to the UNIT entity in the ERD.
     """
     name      = models.CharField(max_length=255)
@@ -91,13 +92,13 @@ class Unit(models.Model):
         on_delete=models.CASCADE,
         related_name="units",
     )
-    teacher   = models.ForeignKey(
+    lecturer  = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="taught_units",
-        limit_choices_to={"is_teacher": True},
+        limit_choices_to={"is_lecturer": True},
     )
 
     def clean(self):

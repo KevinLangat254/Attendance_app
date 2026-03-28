@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MMU Attendance — Login</title>
+  <title>Uni Attendance — Login</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -84,8 +84,8 @@
     <div class="brand fade-up">
       <div class="brand-badge"><span></span> System Active</div>
       <div class="hero-text">
-        <h1>Smart<br/>Attendance<br/>for <em>MMU</em></h1>
-        <p>Location-verified attendance tracking for Multimedia University of Kenya. No proxies. No fraud.</p>
+        <h1>Smart<br/>Attendance<br/>for <em>Uni</em></h1>
+        <p>Location-verified attendance tracking for University of Kenya. No proxies. No fraud.</p>
       </div>
     </div>
     <div class="stats fade-up">
@@ -151,8 +151,8 @@
     </div>
 
     <div class="mmu-logo-text fade-up">
-      <strong>MMU Kenya</strong>
-      Multimedia University of Kenya &copy; 2025
+      <strong>Uni</strong>
+      University of Kenya &copy; 2025
     </div>
   </div>
 
@@ -165,8 +165,8 @@
 
     if (existingToken && !justRegistered) {
       const role = localStorage.getItem('role');
-      window.location.href = role === 'teacher'
-        ? '/dashboard/teacher/dashboard.html'
+      window.location.href = role === 'lecturer'
+        ? '/dashboard/lecturer/dashboard.html'
         : '/dashboard/student/dashboard.html';
     }
 
@@ -230,8 +230,8 @@
 
         // Step 3 — Determine role from database, not from any toggle
         let role;
-        if (profile.is_teacher) {
-          role = 'teacher';
+        if (profile.is_lecturer) {
+          role = 'lecturer';
         } else if (profile.is_student) {
           role = 'student';
         } else {
@@ -245,8 +245,8 @@
         localStorage.setItem('role',     role);
 
         // Step 5 — Redirect based on actual role from database
-        window.location.href = role === 'teacher'
-          ? '/dashboard/teacher/dashboard.html'
+        window.location.href = role === 'lecturer'
+          ? '/dashboard/lecturer/dashboard.html'
           : '/dashboard/student/dashboard.html';
 
       } catch (err) {

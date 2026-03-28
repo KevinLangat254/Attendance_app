@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MMU Attendance — My Profile</title>
+  <title>Uni Attendance — My Profile</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -302,7 +302,7 @@
     }
 
     .role-pill.student { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,195,122,0.2); }
-    .role-pill.teacher { background: var(--blue-dim);  color: var(--blue);  border: 1px solid rgba(74,158,255,0.2); }
+    .role-pill.lecturer { background: var(--blue-dim);  color: var(--blue);  border: 1px solid rgba(74,158,255,0.2); }
 
     .upload-hint {
       margin-top: 0.9rem;
@@ -543,7 +543,7 @@
 
   <!-- ════ PAGE LOADER ════ -->
   <div id="pageLoader">
-    <div class="loader-logo">MMU Attendance</div>
+    <div class="loader-logo">Uni Attendance</div>
     <div class="loader-ring"></div>
     <div class="loader-label">Loading your profile…</div>
   </div>
@@ -551,8 +551,8 @@
   <!-- ════ SIDEBAR ════ -->
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="brand-badge"><span class="brand-dot"></span> MMU Kenya</div>
-      <h1>MMU Attendance</h1>
+      <div class="brand-badge"><span class="brand-dot"></span> Uni</div>
+      <h1>Uni Attendance</h1>
       <p id="sbPortal">Portal</p>
     </div>
 
@@ -870,12 +870,12 @@
         if (!profile) { toast('error', 'Error', 'Profile not found.'); return; }
 
         const full      = `${profile.first_name} ${profile.last_name}`.trim() || profile.username;
-        const isTeacher = profile.is_teacher;
+        const isLecturer = profile.is_lecturer;
 
         // Sidebar
-        document.getElementById('sbPortal').textContent  = isTeacher ? 'Instructor View' : 'Student Portal';
+        document.getElementById('sbPortal').textContent  = isLecturer ? 'Lecturer View' : 'Student Portal';
         document.getElementById('sbName').textContent    = uname;
-        document.getElementById('sbRole').textContent    = isTeacher ? 'Teacher' : 'Student';
+        document.getElementById('sbRole').textContent    = isLecturer ? 'Lecturer' : 'Student';
 
         // Avatar section
         document.getElementById('avatarInitial').textContent = full.charAt(0).toUpperCase();
@@ -883,8 +883,8 @@
         document.getElementById('avatarHandle').textContent  = `@${profile.username}`;
 
         const pill  = document.getElementById('rolePill');
-        pill.textContent = isTeacher ? 'Teaching Staff' : 'Student';
-        pill.className   = `role-pill ${isTeacher ? 'teacher' : 'student'}`;
+        pill.textContent = isLecturer ? 'Lecturer' : 'Student';
+        pill.className   = `role-pill ${isLecturer ? 'lecturer' : 'student'}`;
 
         // Load avatar from DB (source of truth)
         if (profile.avatar_url) setPhoto(profile.avatar_url);
@@ -892,7 +892,7 @@
         // Quick info
         document.getElementById('qEmail').textContent    = profile.email || 'Not set';
         document.getElementById('qUsername').textContent = profile.username;
-        document.getElementById('qRole').textContent     = isTeacher ? 'Teacher' : 'Student';
+        document.getElementById('qRole').textContent     = isLecturer ? 'Lecturer' : 'Student';
 
         // Edit form
         document.getElementById('editFirstName').value = profile.first_name || '';
@@ -902,7 +902,7 @@
 
         // Role card
         if (profile.is_student) loadEnrollment(profile.id);
-        if (profile.is_teacher) loadUnits(profile.id);
+        if (profile.is_lecturer) loadUnits(profile.id);
 
       } catch (e) {
         toast('error', 'Load Failed', 'Could not load profile.');
@@ -937,7 +937,7 @@
     async function loadUnits(tid) {
       try {
         const units = await api('/units/');
-        const mine  = units.filter(u => u.teacher === tid);
+        const mine  = units.filter(u => u.lecturer === tid);
         const card  = document.getElementById('detailCard');
         card.style.display = 'block';
         document.getElementById('detailCardTitle').textContent = 'Units I Teach';
@@ -1063,8 +1063,8 @@
     // ── Nav ──
     function goToDashboard() {
       if (!profile) { window.history.back(); return; }
-      window.location.href = profile.is_teacher
-        ? '/dashboard/teacher/dashboard.html'
+      window.location.href = profile.is_lecturer
+        ? '/dashboard/lecturer/dashboard.html'
         : '/dashboard/student/dashboard.html';
     }
 

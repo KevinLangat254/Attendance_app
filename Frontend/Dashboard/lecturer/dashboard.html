@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MMU Attendance — Teacher Dashboard</title>
+  <title>Uni Attendance — Lecturer Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -932,7 +932,41 @@
       .stat-grid { grid-template-columns: repeat(2,1fr); }
     }
 
+
+    /* ── HAMBURGER (mobile) ── */
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      padding: 0.5rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .hamburger span {
+      display: block;
+      width: 20px; height: 2px;
+      background: var(--white);
+      border-radius: 2px;
+      transition: all 0.3s;
+    }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 99;
+      backdrop-filter: blur(2px);
+    }
+
+    .sidebar-overlay.show { display: block; }
+
     @media (max-width: 768px) {
+      .hamburger { display: flex; }
       .sidebar { transform: translateX(-100%); }
       .main { margin-left: 0; }
       .content { padding: 1rem; }
@@ -1158,6 +1192,7 @@
       animation: spin 0.75s linear infinite;
     }
 
+
   </style>
 </head>
 <body>
@@ -1165,22 +1200,22 @@
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="badge">Teacher Portal</div>
-      <h1>MMU Attendance</h1>
-      <p>Instructor View</p>
+      <div class="badge">Lecturer Portal</div>
+      <h1>Uni Attendance</h1>
+      <p>Lecturer View</p>
     </div>
 
     <div class="sidebar-user">
       <div class="avatar" id="avatarInitial">?</div>
       <div class="user-info">
         <div class="name" id="sidebarUsername">Loading...</div>
-        <div class="role">Teacher</div>
+        <div class="role">Lecturer</div>
       </div>
     </div>
 
     <nav class="sidebar-nav">
       <div class="nav-label">Navigation</div>
-      <a class="nav-item active" id="nav-sessions" onclick="navigateTo('sessions')">
+      <a class="nav-item active" id="nav-sessions" onclick="navigateTo('sessions'); closeSidebar()">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <rect x="3" y="4" width="18" height="18" rx="2"/>
           <line x1="16" y1="2" x2="16" y2="6"/>
@@ -1189,7 +1224,7 @@
         </svg>
         Sessions
       </a>
-      <a class="nav-item" id="nav-units" onclick="navigateTo('units')">
+      <a class="nav-item" id="nav-units" onclick="navigateTo('units'); closeSidebar()">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
@@ -1220,8 +1255,11 @@
   <!-- MAIN -->
   <main class="main">
     <div class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
       <div class="topbar-left">
-        <h2>Teacher Dashboard</h2>
+        <h2>Lecturer Dashboard</h2>
         <p id="greetingText">Welcome back</p>
       </div>
       <div class="topbar-right">
@@ -1448,7 +1486,7 @@
           <div>
             <input type="number" id="longitude" placeholder="Longitude" step="any"/>
           </div>
-          <button class="btn-gps" onclick="captureTeacherLocation()">
+          <button class="btn-gps" onclick="captureLecturerLocation()">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
               <circle cx="12" cy="10" r="3"/>
@@ -1493,7 +1531,7 @@
   <script>
     const BASE_URL = window.location.origin + "/api";
     const token    = localStorage.getItem('token');
-    const username = localStorage.getItem('username') || 'Teacher';
+    const username = localStorage.getItem('username') || 'Lecturer';
 
     // Auth guard
     if (!token) window.location.href = '/';
@@ -1729,9 +1767,9 @@
     // ── UNIT MANAGEMENT STATE ──
     let allUnits      = [];
     let allPrograms   = [];
-    let teacherProfile = null;
+    let lecturerProfile = null;
 
-    // ── LOAD UNITS FOR SESSION DROPDOWN (only teacher's own units) ──
+    // ── LOAD UNITS FOR SESSION DROPDOWN (only lecturer's own units) ──
     async function loadUnits() {
       try {
         const units  = await apiFetch('/units/');
@@ -1740,13 +1778,13 @@
         // Also cache programs for browse filter
         allPrograms  = await apiFetch('/programs/');
 
-        // Get teacher profile to know their ID
+        // Get lecturer profile to know their ID
         const users  = await apiFetch('/users/');
-        teacherProfile = users.find(u => u.username === username);
+        lecturerProfile = users.find(u => u.username === username);
 
-        // Populate session create dropdown — only units this teacher teaches
+        // Populate session create dropdown — only units this lecturer teaches
         const myUnits = allUnits.filter(u =>
-          teacherProfile && u.teacher === teacherProfile.id
+          lecturerProfile && u.lecturer === lecturerProfile.id
         );
 
         const select = document.getElementById('unitSelect');
@@ -1770,12 +1808,12 @@
     function loadMyUnits() {
       const grid = document.getElementById('myUnitsGrid');
 
-      if (!teacherProfile) {
+      if (!lecturerProfile) {
         grid.innerHTML = `<div class="empty-state"><p>Loading...</p></div>`;
         return;
       }
 
-      const myUnits = allUnits.filter(u => u.teacher === teacherProfile.id);
+      const myUnits = allUnits.filter(u => u.lecturer === lecturerProfile.id);
       document.getElementById('myUnitCount').textContent = myUnits.length;
 
       if (myUnits.length === 0) {
@@ -1846,7 +1884,7 @@
       const faculty   = document.getElementById('browseFaculty').value;
       const programId = parseInt(document.getElementById('browseProgramme').value) || null;
 
-      if (!teacherProfile) {
+      if (!lecturerProfile) {
         grid.innerHTML = `<div class="empty-state"><p>Loading...</p></div>`;
         return;
       }
@@ -1866,8 +1904,8 @@
       }
 
       grid.innerHTML = filtered.map((u, i) => {
-        const isMine    = u.teacher === teacherProfile.id;
-        const isTaken   = u.teacher !== null && u.teacher !== teacherProfile.id;
+        const isMine    = u.lecturer === lecturerProfile.id;
+        const isTaken   = u.lecturer !== null && u.lecturer !== lecturerProfile.id;
 
         return `
         <div class="unit-row ${isMine ? 'mine' : ''}" style="animation-delay:${i * 0.03}s" id="unitrow-${u.id}">
@@ -1877,7 +1915,7 @@
               <span class="unit-tag code">${u.unit_code}</span>
               <span class="unit-tag yr">Year ${u.year} · Sem ${u.semester}</span>
               ${isMine   ? `<span class="unit-tag mine">✓ My Unit</span>` : ''}
-              ${isTaken  ? `<span class="unit-tag yr">Assigned to ${u.teacher_name}</span>` : ''}
+              ${isTaken  ? `<span class="unit-tag yr">Assigned to ${u.lecturer_name}</span>` : ''}
             </div>
           </div>
           ${isMine
@@ -1910,10 +1948,10 @@
         // Update local cache
         const unit = allUnits.find(u => u.id === unitId);
         if (unit) {
-          unit.teacher      = teacherProfile.id;
-          unit.teacher_name = teacherProfile.first_name
-            ? `${teacherProfile.first_name} ${teacherProfile.last_name}`.trim()
-            : teacherProfile.username;
+          unit.lecturer      = lecturerProfile.id;
+          unit.lecturer_name = lecturerProfile.first_name
+            ? `${lecturerProfile.first_name} ${lecturerProfile.last_name}`.trim()
+            : lecturerProfile.username;
         }
 
         showToast('success', 'Unit Claimed!', 'This unit has been added to your list.');
@@ -1938,8 +1976,8 @@
         // Update local cache
         const unit = allUnits.find(u => u.id === unitId);
         if (unit) {
-          unit.teacher      = null;
-          unit.teacher_name = null;
+          unit.lecturer      = null;
+          unit.lecturer_name = null;
         }
 
         showToast('success', 'Unit Removed', 'Unit removed from your list.');
@@ -1957,7 +1995,7 @@
     // ── REFRESH SESSION DROPDOWN after claim/unclaim ──
     function refreshSessionDropdown() {
       const myUnits = allUnits.filter(u =>
-        teacherProfile && u.teacher === teacherProfile.id
+        lecturerProfile && u.lecturer === lecturerProfile.id
       );
       const select = document.getElementById('unitSelect');
       if (myUnits.length === 0) {
@@ -1977,7 +2015,7 @@
     }
 
     // ── GPS FOR TEACHER ──
-    function captureTeacherLocation() {
+    function captureLecturerLocation() {
       const hint = document.getElementById('gpsHint');
       hint.className = 'gps-hint';
       hint.innerHTML = `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Acquiring location...`;
@@ -2206,6 +2244,20 @@
       document.getElementById('studentsPanelOverlay').classList.remove('show');
     }
 
+
+    // ── SIDEBAR TOGGLE (mobile) ──
+    function toggleSidebar() {
+      const sidebar  = document.getElementById('sidebar');
+      const overlay  = document.getElementById('sidebarOverlay');
+      const isOpen   = sidebar.classList.contains('open');
+      sidebar.classList.toggle('open', !isOpen);
+      overlay.classList.toggle('show', !isOpen);
+    }
+
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('show');
+    }
   </script>
 
   <!-- UNIT STUDENTS PANEL -->
@@ -2249,5 +2301,7 @@
     </div>
   </div>
 
+
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 </body>
 </html>

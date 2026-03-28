@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MMU Attendance — Register</title>
+  <title>Uni Attendance — Register</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -423,9 +423,9 @@
 
     <!-- HEADER -->
     <div class="card-header">
-      <div class="brand-badge"><span></span> MMU Kenya</div>
+      <div class="brand-badge"><span></span> Uni</div>
       <h1>Create Account</h1>
-      <p>Join the MMU Attendance System</p>
+      <p>Join the Uni Attendance System</p>
     </div>
 
     <!-- ROLE TOGGLE -->
@@ -437,13 +437,13 @@
         </svg>
         Student
       </button>
-      <button class="role-btn" onclick="setRole('teacher', this)">
+      <button class="role-btn" onclick="setRole('lecturer', this)">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
           <circle cx="9" cy="7" r="4"/>
           <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
-        Teacher
+        Lecturer
       </button>
     </div>
 
@@ -674,7 +674,7 @@
       document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
 
-      // Hide programme section for teachers — they don't enroll in a program
+      // Hide programme section for lecturers — they don't enroll in a program
       document.getElementById('programSection').style.display =
         role === 'student' ? 'block' : 'none';
     }
@@ -892,7 +892,7 @@
           last_name:  lastName,
           password,
           is_student: selectedRole === 'student',
-          is_teacher: selectedRole === 'teacher',
+          is_lecturer: selectedRole === 'lecturer',
         };
 
         const response = await fetch(`${BASE_URL}/users/`, {

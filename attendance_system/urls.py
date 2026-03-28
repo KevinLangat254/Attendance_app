@@ -28,7 +28,7 @@ urlpatterns = [
     path('register.html', TemplateView.as_view(template_name='register.html'), name='register'),
     path('profile.html', TemplateView.as_view(template_name='profile.html'), name='profile'),
     path('dashboard/student/dashboard.html', TemplateView.as_view(template_name='dashboard/student/dashboard.html'), name='student-dashboard'),
-    path('dashboard/teacher/dashboard.html', TemplateView.as_view(template_name='dashboard/teacher/dashboard.html'), name='teacher-dashboard'),
+    path('dashboard/lecturer/dashboard.html', TemplateView.as_view(template_name='dashboard/lecturer/dashboard.html'), name='lecturer-dashboard'),
 
     # ── API endpoints ──
     path("api/", include("attendance.urls")),

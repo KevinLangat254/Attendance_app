@@ -9,7 +9,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model  = User
         fields = ["id", "username", "email", "first_name", "last_name",
-                  "password", "is_teacher", "is_student", "avatar_url"]
+                  "password", "is_lecturer", "is_student", "avatar_url"]
 
     def get_avatar_url(self, obj):
         if obj.avatar:
@@ -58,11 +58,11 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 class UnitSerializer(serializers.ModelSerializer):
     class Meta:
         model = Unit
-        fields = ["id", "name", "unit_code", "semester", "year","program", "teacher"]
+        fields = ["id", "name", "unit_code", "semester", "year","program", "lecturer"]
 
-    def validate_teacher(self, user):
-        if not user.is_teacher:
-            raise serializers.ValidationError("This user is not a teacher.")
+    def validate_lecturer(self, user):
+        if not user.is_lecturer:
+            raise serializers.ValidationError("This user is not a lecturer.")
         return user
 
 

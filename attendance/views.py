@@ -30,8 +30,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        # Teachers and admins can see all users (needed for dashboards)
-        if user.is_staff or user.is_teacher:
+        # Lecturers and admins can see all users (needed for dashboards)
+        if user.is_staff or user.is_lecturer:
             return User.objects.all()
         # Students only see themselves
         return User.objects.filter(id=user.id)
@@ -74,8 +74,8 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        # Teachers and admins see all enrollments
-        if user.is_staff or user.is_teacher:
+        # Lecturers and admins see all enrollments
+        if user.is_staff or user.is_lecturer:
             return Enrollment.objects.all()
         # Students only see their own enrollment
         return Enrollment.objects.filter(student=user)
@@ -110,18 +110,18 @@ class SessionViewSet(viewsets.ModelViewSet):
     serializer_class = SessionSerializer
 
     def create(self, request, *args, **kwargs):
-        # Only teachers and admins can create sessions
-        if not (request.user.is_teacher or request.user.is_staff):
+        # Only lecturers and admins can create sessions
+        if not (request.user.is_lecturer or request.user.is_staff):
             return Response(
-                {'error': 'Only teachers can create sessions.'},
+                {'error': 'Only lecturers can create sessions.'},
                 status=status.HTTP_403_FORBIDDEN
             )
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
-        # Only the teacher who owns the unit can update the session
+        # Only the lecturer who owns the unit can update the session
         session = self.get_object()
-        if session.unit.teacher != request.user and not request.user.is_staff:
+        if session.unit.lecturer != request.user and not request.user.is_staff:
             return Response(
                 {'error': 'You can only modify sessions for units you teach.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -129,9 +129,9 @@ class SessionViewSet(viewsets.ModelViewSet):
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
-        # Only the teacher who owns the unit or an admin can delete the session
+        # Only the lecturer who owns the unit or an admin can delete the session
         session = self.get_object()
-        if session.unit.teacher != request.user and not request.user.is_staff:
+        if session.unit.lecturer != request.user and not request.user.is_staff:
             return Response(
                 {'error': 'You can only delete sessions for units you teach.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -146,18 +146,18 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        # Teachers and admins see all attendance records
-        if user.is_staff or user.is_teacher:
+        # Lecturers and admins see all attendance records
+        if user.is_staff or user.is_lecturer:
             return Attendance.objects.all()
         # Students only see their own records
         return Attendance.objects.filter(student=user)
 
     def update(self, request, *args, **kwargs):
-        # Only teachers and admins can modify attendance records
+        # Only lecturers and admins can modify attendance records
         # Students cannot change their own status (e.g. ABSENT → PRESENT)
-        if not (request.user.is_staff or request.user.is_teacher):
+        if not (request.user.is_staff or request.user.is_lecturer):
             return Response(
-                {'error': 'Only teachers can modify attendance records.'},
+                {'error': 'Only lecturers can modify attendance records.'},
                 status=status.HTTP_403_FORBIDDEN
             )
         return super().update(request, *args, **kwargs)
@@ -185,9 +185,9 @@ def claim_unit(request, unit_id):
     - Returns 403 if the unit is already assigned to a different teacher.
     - Returns 403 if the requesting user is not a teacher.
     """
-    if not (request.user.is_teacher or request.user.is_staff):
+    if not (request.user.is_lecturer or request.user.is_staff):
         return Response(
-            {'error': 'Only teachers can claim units.'},
+            {'error': 'Only lecturers can claim units.'},
             status=status.HTTP_403_FORBIDDEN
         )
 
@@ -196,14 +196,14 @@ def claim_unit(request, unit_id):
     except Unit.DoesNotExist:
         return Response({'error': 'Unit not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Prevent overwriting another teacher's assignment
-    if unit.teacher is not None and unit.teacher != request.user:
+    # Prevent overwriting another lecturer's assignment
+    if unit.lecturer is not None and unit.lecturer != request.user:
         return Response(
-            {'error': 'This unit is already assigned to another teacher.'},
+            {'error': 'This unit is already assigned to another lecturer.'},
             status=status.HTTP_403_FORBIDDEN
         )
 
-    unit.teacher = request.user
+    unit.lecturer = request.user
     unit.save()
     return Response(UnitSerializer(unit).data, status=status.HTTP_200_OK)
 
@@ -212,22 +212,22 @@ def claim_unit(request, unit_id):
 @permission_classes([IsAuthenticated])
 def unclaim_unit(request, unit_id):
     """
-    Remove the requesting teacher from a unit they currently teach.
+    Remove the requesting lecturer from a unit they currently teach.
     - Returns 404 if the unit does not exist.
-    - Returns 403 if the requesting user is not the assigned teacher.
+    - Returns 403 if the requesting user is not the assigned lecturer.
     """
     try:
         unit = Unit.objects.get(id=unit_id)
     except Unit.DoesNotExist:
         return Response({'error': 'Unit not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    if unit.teacher != request.user and not request.user.is_staff:
+    if unit.lecturer != request.user and not request.user.is_staff:
         return Response(
-            {'error': 'You do not teach this unit.'},
+            {'error': 'You are not the lecturer for this unit.'},
             status=status.HTTP_403_FORBIDDEN
         )
 
-    unit.teacher = None
+    unit.lecturer = None
     unit.save()
     return Response(UnitSerializer(unit).data, status=status.HTTP_200_OK)
 
