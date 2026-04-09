@@ -17,6 +17,17 @@ urlpatterns = [
     path('mark-attendance/', views.MarkAttendanceView.as_view()),
     path('upload-avatar/', views.upload_avatar, name='upload-avatar'),
 
+    # ── WebAuthn Registration (Linking a phone) ──
+    path('webauthn/register/begin/', views.webauthn_register_begin, name='webauthn-register-begin'),
+    path('webauthn/register/complete/', views.webauthn_register_complete, name='webauthn-register-complete'),
+
+    # ── WebAuthn Authentication (Verifying identity) ──
+    path('webauthn/login/begin/', views.webauthn_login_begin, name='webauthn-login-begin'),
+    path('webauthn/login/complete/', views.webauthn_login_complete, name='webauthn-login-complete'),
+
+    # ── Administrative Override ──
+    path('webauthn/reset-student/<int:student_id>/', views.reset_student_biometric, name='webauthn-reset'),
+
     # Router URLs
     path('', include(router.urls)),
 ]
