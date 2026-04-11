@@ -74,6 +74,39 @@
     .fade-up:nth-child(4) { animation-delay: 0.4s; }
     .fade-up:nth-child(5) { animation-delay: 0.5s; }
     @media (max-width: 768px) { body { flex-direction: column; } .left-panel { padding: 2rem; min-height: auto; } .stats { gap: 1.5rem; } .right-panel { width: 100%; padding: 2rem; } .hero-text h1 { font-size: 2rem; } }
+
+    .divider {
+      display: flex; align-items: center; gap: 0.8rem;
+      margin: 1.2rem 0; color: var(--muted); font-size: 0.8rem;
+    }
+
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      height: 1px; background: rgba(255,255,255,0.08);
+    }
+
+    .btn-biometric {
+      width: 100%; padding: 0.9rem;
+      background: transparent;
+      border: 1px solid rgba(74,158,255,0.3);
+      border-radius: 0.6rem;
+      color: #4A9EFF;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.02em;
+      transition: all 0.2s;
+      display: flex; align-items: center;
+      justify-content: center; gap: 0.6rem;
+    }
+
+    .btn-biometric:hover {
+      background: rgba(74,158,255,0.08);
+      border-color: #4A9EFF;
+    }
+
+    .btn-biometric:active { transform: scale(0.98); }
+    .btn-biometric:disabled { opacity: 0.5; pointer-events: none; }
+
   </style>
 </head>
 <body>
@@ -85,7 +118,7 @@
       <div class="brand-badge"><span></span> System Active</div>
       <div class="hero-text">
         <h1>Smart<br/>Attendance<br/>for <em>Uni</em></h1>
-        <p>Location-verified attendance tracking for University of Kenya. No proxies. No fraud.</p>
+        <p>Location-verified attendance tracking for Multimedia University of Kenya. No proxies. No fraud.</p>
       </div>
     </div>
     <div class="stats fade-up">
@@ -146,13 +179,22 @@
       </button>
     </form>
 
+    <div class="divider">or</div>
+
+    <button class="btn-biometric" id="bioBtn" onclick="loginWithBiometric()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/>
+      </svg>
+      Login with Biometrics
+    </button>
+
     <div class="register-link">
       Don't have an account? <a href="register.html">Register here</a>
     </div>
 
     <div class="mmu-logo-text fade-up">
       <strong>Uni</strong>
-      University of Kenya &copy; 2025
+      Multimedia University of Kenya &copy; 2025
     </div>
   </div>
 
@@ -255,6 +297,128 @@
         btn.classList.remove('loading');
       }
     }
+
+    // ════════════════════════════════════════════════════════
+    //  WEBAUTHN — BIOMETRIC LOGIN
+    // ════════════════════════════════════════════════════════
+
+    // ── Helper: convert base64url string to ArrayBuffer ──
+    function base64urlToBuffer(base64url) {
+      const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+      const padded  = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+      const binary  = atob(padded);
+      const buffer  = new ArrayBuffer(binary.length);
+      const view    = new Uint8Array(buffer);
+      for (let i = 0; i < binary.length; i++) view[i] = binary.charCodeAt(i);
+      return buffer;
+    }
+
+    // ── Helper: convert ArrayBuffer to base64url string ──
+    function bufferToBase64url(buffer) {
+      const bytes  = new Uint8Array(buffer);
+      let   binary = '';
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      return btoa(binary)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+    }
+
+    async function loginWithBiometric() {
+      const username = document.getElementById('username').value.trim();
+
+      if (!username) {
+        showError('Please enter your username first, then tap Login with Biometrics.');
+        return;
+      }
+
+      const btn = document.getElementById('bioBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Waiting for biometric...';
+
+      try {
+        // ── Step 1: Get challenge from server ──
+        const beginRes = await fetch(`${BASE_URL}/webauthn/login/begin/`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ username }),
+        });
+
+        const beginData = await beginRes.json();
+
+        if (!beginRes.ok) {
+          showError(beginData.error || 'Could not start biometric login.');
+          return;
+        }
+
+        // ── Step 2: Convert challenge and credentials to ArrayBuffer ──
+        // The browser's WebAuthn API requires ArrayBuffers, not strings
+        const publicKeyOptions = {
+          ...beginData,
+          challenge: base64urlToBuffer(beginData.challenge),
+          allowCredentials: (beginData.allowCredentials || []).map(c => ({
+            ...c,
+            id: base64urlToBuffer(c.id),
+          })),
+        };
+
+        // ── Step 3: Trigger the biometric prompt on the device ──
+        // This is where the fingerprint / face ID dialog appears
+        const assertion = await navigator.credentials.get({
+          publicKey: publicKeyOptions,
+        });
+
+        // ── Step 4: Send signed response to server for verification ──
+        const completeRes = await fetch(`${BASE_URL}/webauthn/login/complete/`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username,
+            id:    assertion.id,
+            rawId: bufferToBase64url(assertion.rawId),
+            type:  assertion.type,
+            response: {
+              clientDataJSON:    bufferToBase64url(assertion.response.clientDataJSON),
+              authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
+              signature:         bufferToBase64url(assertion.response.signature),
+              userHandle:        assertion.response.userHandle
+                ? bufferToBase64url(assertion.response.userHandle)
+                : null,
+            },
+          }),
+        });
+
+        const completeData = await completeRes.json();
+
+        if (!completeRes.ok) {
+          showError(completeData.error || 'Biometric verification failed.');
+          return;
+        }
+
+        // ── Step 5: Save token and redirect ──
+        localStorage.setItem('token',    completeData.token);
+        localStorage.setItem('username', completeData.username);
+        localStorage.setItem('role',     completeData.is_lecturer ? 'lecturer' : 'student');
+
+        window.location.href = completeData.is_lecturer
+          ? '/dashboard/lecturer/dashboard.html'
+          : '/dashboard/student/dashboard.html';
+
+      } catch (err) {
+        // User cancelled the biometric prompt or device does not support it
+        if (err.name === 'NotAllowedError') {
+          showError('Biometric login was cancelled or timed out.');
+        } else if (err.name === 'NotSupportedError') {
+          showError('Your device does not support biometric login.');
+        } else {
+          showError('Biometric login failed. Please use your password instead.');
+        }
+      } finally {
+        btn.disabled  = false;
+        btn.innerHTML = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/></svg> Login with Biometrics`;
+      }
+    }
+
   </script>
 </body>
 </html>

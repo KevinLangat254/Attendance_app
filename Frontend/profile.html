@@ -537,6 +537,60 @@
       .left-panel { grid-template-columns: 1fr; }
       .form-row-2 { grid-template-columns: 1fr; }
     }
+
+    /* ── BIOMETRIC CARD ── */
+    .device-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 0.85rem;
+    }
+
+    .device-row:last-child { border-bottom: none; }
+
+    .device-info { display: flex; align-items: center; gap: 0.75rem; }
+
+    .device-icon {
+      width: 32px; height: 32px;
+      border-radius: 0.4rem;
+      background: var(--green-dim);
+      color: var(--green);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .device-name  { font-weight: 500; }
+    .device-date  { font-size: 0.72rem; color: var(--muted); margin-top: 0.1rem; }
+
+    .btn-remove-device {
+      background: rgba(255,92,92,0.08);
+      border: 1px solid rgba(255,92,92,0.2);
+      border-radius: 0.4rem;
+      color: var(--error);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 0.7rem;
+      cursor: pointer;
+      transition: all 0.18s;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .btn-remove-device:hover { background: rgba(255,92,92,0.15); }
+
+    .bio-status-registered {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: var(--green-dim); color: var(--green);
+      border: 1px solid rgba(0,195,122,0.2);
+      font-size: 0.72rem; font-weight: 700;
+      padding: 0.2rem 0.6rem; border-radius: 1rem;
+    }
+
+    .bio-status-none {
+      font-size: 0.83rem; color: var(--muted);
+    }
+
   </style>
 </head>
 <body>
@@ -824,6 +878,42 @@
           </div>
         </div>
 
+        <!-- Biometric / Passkey Card -->
+        <div class="form-card">
+          <div class="fc-head">
+            <div class="fc-icon g">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/>
+              </svg>
+            </div>
+            <div>
+              <div class="fc-title">Biometric Login</div>
+              <div class="fc-sub">Register your fingerprint or face ID to log in without a password</div>
+            </div>
+          </div>
+
+          <div class="fc-body">
+            <!-- Registered device section -->
+            <div id="bioDeviceSection">
+              <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.8rem;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">
+                Registered Device
+              </div>
+              <div id="bioDeviceList">
+                <p class="bio-status-none">Loading...</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="fc-foot">
+            <button class="btn-primary green" id="bioRegisterBtn" onclick="registerBiometric()" style="display:inline-flex;">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/>
+              </svg>
+              Register This Device
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   </main>
@@ -1082,6 +1172,184 @@
       el.classList.add('show');
       setTimeout(() => el.classList.remove('show'), 4000);
     }
+
+    // ════════════════════════════════════════════════════════
+    //  WEBAUTHN — BIOMETRIC REGISTRATION (Profile Page)
+    // ════════════════════════════════════════════════════════
+
+    // ── Helper: convert base64url string to ArrayBuffer ──
+    function base64urlToBuffer(base64url) {
+      const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+      const padded  = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+      const binary  = atob(padded);
+      const buffer  = new ArrayBuffer(binary.length);
+      const view    = new Uint8Array(buffer);
+      for (let i = 0; i < binary.length; i++) view[i] = binary.charCodeAt(i);
+      return buffer;
+    }
+
+    // ── Helper: convert ArrayBuffer to base64url string ──
+    function bufferToBase64url(buffer) {
+      const bytes  = new Uint8Array(buffer);
+      let   binary = '';
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      return btoa(binary)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+    }
+
+    // ── Load registered biometric device ──
+    async function loadBioCredentials() {
+      const list   = document.getElementById('bioDeviceList');
+      const regBtn = document.getElementById('bioRegisterBtn');
+
+      // Show loading state
+      list.innerHTML = `<p class="bio-status-none">Checking biometric status...</p>`;
+      regBtn.style.display = 'none';
+
+      try {
+        const res = await fetch(`${BASE}/webauthn/credentials/`, {
+          headers: { 'Authorization': `Token ${token}` },
+        });
+
+        // If endpoint not found or server error — show register button
+        if (!res.ok) {
+          list.innerHTML = `<p class="bio-status-none">No biometric device registered yet.</p>`;
+          regBtn.style.display = 'inline-flex';
+          return;
+        }
+
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          // No device registered — show register button
+          list.innerHTML = `<p class="bio-status-none">No biometric device registered yet.</p>`;
+          regBtn.style.display = 'inline-flex';
+          return;
+        }
+
+        // One device registered — show it (one-device policy)
+        const cred = data[0];
+        list.innerHTML = `
+          <div class="device-row">
+            <div class="device-info">
+              <div class="device-icon">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                  <line x1="12" y1="18" x2="12.01" y2="18"/>
+                </svg>
+              </div>
+              <div>
+                <div class="device-name">${cred.device_name}</div>
+                <div class="device-date">Registered ${cred.created_at}</div>
+              </div>
+            </div>
+            <span class="bio-status-registered">
+              <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Active
+            </span>
+          </div>`;
+
+        // Hide the register button — one-device policy
+        regBtn.style.display = 'none';
+
+      } catch (err) {
+        // Network error or unexpected failure — still show register button
+        list.innerHTML = `<p class="bio-status-none">No biometric device registered yet.</p>`;
+        regBtn.style.display = 'inline-flex';
+      }
+    }
+
+    // ── Register biometric device ──
+    async function registerBiometric() {
+      const btn = document.getElementById('bioRegisterBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Waiting for biometric...';
+
+      try {
+        // ── Step 1: Get registration options from server ──
+        const beginRes  = await fetch(`${BASE}/webauthn/register/begin/`, {
+          method:  'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Token ${token}`,
+          },
+        });
+
+        const beginData = await beginRes.json();
+
+        if (!beginRes.ok) {
+          toast('error', 'Registration Failed', beginData.error || 'Could not start registration.');
+          return;
+        }
+
+        // ── Step 2: Convert challenge and user.id to ArrayBuffer ──
+        const publicKeyOptions = {
+          ...beginData,
+          challenge: base64urlToBuffer(beginData.challenge),
+          user: {
+            ...beginData.user,
+            id: base64urlToBuffer(beginData.user.id),
+          },
+          excludeCredentials: (beginData.excludeCredentials || []).map(c => ({
+            ...c,
+            id: base64urlToBuffer(c.id),
+          })),
+        };
+
+        // ── Step 3: Trigger biometric prompt on device ──
+        const credential = await navigator.credentials.create({
+          publicKey: publicKeyOptions,
+        });
+
+        // ── Step 4: Send result to server ──
+        const completeRes = await fetch(`${BASE}/webauthn/register/complete/`, {
+          method:  'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Token ${token}`,
+          },
+          body: JSON.stringify({
+            id:          credential.id,
+            rawId:       bufferToBase64url(credential.rawId),
+            type:        credential.type,
+            device_name: navigator.userAgent.includes('Android') ? 'Android Phone'
+                       : navigator.userAgent.includes('iPhone')  ? 'iPhone'
+                       : 'My Device',
+            response: {
+              clientDataJSON:    bufferToBase64url(credential.response.clientDataJSON),
+              attestationObject: bufferToBase64url(credential.response.attestationObject),
+            },
+          }),
+        });
+
+        const completeData = await completeRes.json();
+
+        if (!completeRes.ok) {
+          toast('error', 'Registration Failed', completeData.error || 'Verification failed.');
+          return;
+        }
+
+        toast('success', 'Biometric Registered', 'You can now log in with your fingerprint or face.');
+        loadBioCredentials(); // refresh the device list
+
+      } catch (err) {
+        if (err.name === 'NotAllowedError') {
+          toast('error', 'Cancelled', 'Biometric registration was cancelled.');
+        } else if (err.name === 'NotSupportedError') {
+          toast('error', 'Not Supported', 'Your device does not support biometric registration.');
+        } else {
+          toast('error', 'Failed', 'Biometric registration failed. Please try again.');
+        }
+      } finally {
+        btn.disabled  = false;
+        btn.innerHTML = `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/></svg> Register This Device`;
+      }
+    }
+
   </script>
 </body>
 </html>
