@@ -149,15 +149,21 @@ def webauthn_register_complete(request):
 
     device_name = request.data.get('device_name', 'My Device')
 
-    # Build the credential manually from individual fields
-    # — safer than parse_raw which breaks on nested data or special characters
+    # Build the credential from individual fields
+    # The response must be constructed using AuthenticatorAttestationResponse
+    # not passed as a raw dict — py-webauthn needs proper typed objects
     try:
+        from webauthn.helpers.structs import AuthenticatorAttestationResponse
+        response_data = request.data.get('response', {})
         credential = RegistrationCredential(
             id       = request.data.get('id'),
             raw_id   = base64url_to_bytes(
                 request.data.get('rawId', request.data.get('id'))
             ),
-            response = request.data.get('response'),
+            response = AuthenticatorAttestationResponse(
+                client_data_json    = base64url_to_bytes(response_data.get('clientDataJSON', '')),
+                attestation_object  = base64url_to_bytes(response_data.get('attestationObject', '')),
+            ),
             type     = request.data.get('type', 'public-key'),
         )
     except Exception as e:
@@ -358,10 +364,18 @@ def webauthn_login_complete(request):
         )
 
     try:
+        from webauthn.helpers.structs import AuthenticatorAssertionResponse
+        response_data = request.data.get('response', {})
         credential = AuthenticationCredential(
             id       = request.data.get('id'),
             raw_id   = base64url_to_bytes(credential_id),
-            response = request.data.get('response'),
+            response = AuthenticatorAssertionResponse(
+                client_data_json    = base64url_to_bytes(response_data.get('clientDataJSON', '')),
+                authenticator_data  = base64url_to_bytes(response_data.get('authenticatorData', '')),
+                signature           = base64url_to_bytes(response_data.get('signature', '')),
+                user_handle         = base64url_to_bytes(response_data['userHandle'])
+                                      if response_data.get('userHandle') else None,
+            ),
             type     = request.data.get('type', 'public-key'),
         )
     except Exception as e:

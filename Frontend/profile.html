@@ -1263,93 +1263,117 @@
       }
     }
 
-    // ── Register biometric device ──
-    async function registerBiometric() {
-      const btn = document.getElementById('bioRegisterBtn');
-      btn.disabled    = true;
-      btn.textContent = 'Waiting for biometric...';
+    /**
+ * ── Register Biometric Device ──
+ * Orchestrates the WebAuthn registration handshake.
+ * 1. Fetches challenge from server.
+ * 2. Invokes hardware biometric prompt.
+ * 3. Sends signed attestation back to server for verification.
+ */
+async function registerBiometric() {
+  const btn = document.getElementById('bioRegisterBtn');
+  
+  // UI State: Prevent double-clicks and show status
+  btn.disabled = true;
+  btn.textContent = 'Waiting for biometric...';
 
-      try {
-        // ── Step 1: Get registration options from server ──
-        const beginRes  = await fetch(`${BASE}/webauthn/register/begin/`, {
-          method:  'POST',
-          headers: {
-            'Content-Type':  'application/json',
-            'Authorization': `Token ${token}`,
-          },
-        });
+  try {
+    // ── Step 1: Request Registration Options ──
+    // The server generates a unique 'challenge' and 'RP' (Relaying Party) details.
+    const beginRes = await fetch(`${BASE}/webauthn/register/begin/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+    });
 
-        const beginData = await beginRes.json();
+    const beginData = await beginRes.json();
 
-        if (!beginRes.ok) {
-          toast('error', 'Registration Failed', beginData.error || 'Could not start registration.');
-          return;
-        }
-
-        // ── Step 2: Convert challenge and user.id to ArrayBuffer ──
-        const publicKeyOptions = {
-          ...beginData,
-          challenge: base64urlToBuffer(beginData.challenge),
-          user: {
-            ...beginData.user,
-            id: base64urlToBuffer(beginData.user.id),
-          },
-          excludeCredentials: (beginData.excludeCredentials || []).map(c => ({
-            ...c,
-            id: base64urlToBuffer(c.id),
-          })),
-        };
-
-        // ── Step 3: Trigger biometric prompt on device ──
-        const credential = await navigator.credentials.create({
-          publicKey: publicKeyOptions,
-        });
-
-        // ── Step 4: Send result to server ──
-        const completeRes = await fetch(`${BASE}/webauthn/register/complete/`, {
-          method:  'POST',
-          headers: {
-            'Content-Type':  'application/json',
-            'Authorization': `Token ${token}`,
-          },
-          body: JSON.stringify({
-            id:          credential.id,
-            rawId:       bufferToBase64url(credential.rawId),
-            type:        credential.type,
-            device_name: navigator.userAgent.includes('Android') ? 'Android Phone'
-                       : navigator.userAgent.includes('iPhone')  ? 'iPhone'
-                       : 'My Device',
-            response: {
-              clientDataJSON:    bufferToBase64url(credential.response.clientDataJSON),
-              attestationObject: bufferToBase64url(credential.response.attestationObject),
-            },
-          }),
-        });
-
-        const completeData = await completeRes.json();
-
-        if (!completeRes.ok) {
-          toast('error', 'Registration Failed', completeData.error || 'Verification failed.');
-          return;
-        }
-
-        toast('success', 'Biometric Registered', 'You can now log in with your fingerprint or face.');
-        loadBioCredentials(); // refresh the device list
-
-      } catch (err) {
-        if (err.name === 'NotAllowedError') {
-          toast('error', 'Cancelled', 'Biometric registration was cancelled.');
-        } else if (err.name === 'NotSupportedError') {
-          toast('error', 'Not Supported', 'Your device does not support biometric registration.');
-        } else {
-          toast('error', 'Failed', 'Biometric registration failed. Please try again.');
-        }
-      } finally {
-        btn.disabled  = false;
-        btn.innerHTML = `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/></svg> Register This Device`;
-      }
+    if (!beginRes.ok) {
+      toast('error', 'Registration Failed', beginData.error || 'Could not start registration.');
+      return;
     }
 
+    // ── Step 2: Prepare Options for Browser API ──
+    // WebAuthn API requires 'challenge' and 'user.id' as ArrayBuffers (binary),
+    // but they are sent as Base64URL strings from the Django backend.
+    const publicKeyOptions = {
+      ...beginData,
+      challenge: base64urlToBuffer(beginData.challenge),
+      user: {
+        ...beginData.user,
+        id: base64urlToBuffer(beginData.user.id),
+      },
+      // Ensure existing devices are excluded to prevent duplicate registration
+      excludeCredentials: (beginData.excludeCredentials || []).map(c => ({
+        ...c,
+        id: base64urlToBuffer(c.id),
+      })),
+    };
+
+    // ── Step 3: Trigger Hardware Biometric Prompt ──
+    // This invokes the native Android/iOS/Windows biometric sensor.
+    // The device generates a new public/private key pair and signs the challenge.
+    const credential = await navigator.credentials.create({
+      publicKey: publicKeyOptions,
+    });
+
+    // ── Step 4: Transmit Public Key to Server ──
+    // We send the 'attestationObject' (the new public key) and 'clientDataJSON'
+    // back to the server. The server verifies the signature before saving.
+    const completeRes = await fetch(`${BASE}/webauthn/register/complete/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify({
+        id: credential.id,
+        rawId: bufferToBase64url(credential.rawId),
+        type: credential.type,
+        // Identify the device type based on User Agent for the dashboard UI
+        device_name: navigator.userAgent.includes('Android') ? 'Android Phone'
+                   : navigator.userAgent.includes('iPhone')  ? 'iPhone'
+                   : 'My Device',
+        response: {
+          clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+          attestationObject: bufferToBase64url(credential.response.attestationObject),
+        },
+      }),
+    });
+
+    const completeData = await completeRes.json();
+
+    if (!completeRes.ok) {
+      toast('error', 'Registration Failed', completeData.error || 'Verification failed.');
+      return;
+    }
+
+    // Success State
+    toast('success', 'Biometric Registered', 'You can now log in with your fingerprint or face.');
+    loadBioCredentials(); // Update the UI list of linked devices
+
+  } catch (err) {
+    // ── Step 5: Handle Hardware/User Interaction Errors ──
+    if (err.name === 'NotAllowedError') {
+      // User tapped 'Cancel' or closed the biometric prompt
+      toast('error', 'Cancelled', 'Biometric registration was cancelled.');
+    } else if (err.name === 'NotSupportedError') {
+      // Browser is not HTTPS or hardware lacks biometric sensors
+      toast('error', 'Not Supported', 'Your device does not support biometric registration.');
+    } else {
+      // General cryptographic or network errors
+      toast('error', 'Failed', 'Biometric registration failed. Please try again.');
+    }
+  } finally {
+    // Restore button state
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/></svg> Register This Device`;
+  }
+}
+
+  
   </script>
 </body>
 </html>

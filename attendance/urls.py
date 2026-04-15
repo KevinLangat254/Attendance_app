@@ -1,5 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+
+from attendance.views.auth_views import webauthn_delete_credential, webauthn_list_credentials
 from . import views
 
 router = DefaultRouter()
@@ -24,6 +26,10 @@ urlpatterns = [
     # ── WebAuthn Authentication (Verifying identity) ──
     path('webauthn/login/begin/', views.webauthn_login_begin, name='webauthn-login-begin'),
     path('webauthn/login/complete/', views.webauthn_login_complete, name='webauthn-login-complete'),
+
+    # ── WebAuthn — Manage Devices ──
+    path('webauthn/credentials/', webauthn_list_credentials, name='webauthn-list-credentials'),
+    path('webauthn/credentials/delete/<int:credential_id>/', webauthn_delete_credential, name='webauthn-delete-credential'),
 
     # ── Administrative Override ──
     path('webauthn/reset-student/<int:student_id>/', views.reset_student_biometric, name='webauthn-reset'),
