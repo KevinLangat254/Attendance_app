@@ -1,11 +1,14 @@
 import json
 import base64
 import os
+from urllib.parse import urlparse
+
 from rest_framework.decorators  import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response    import Response
 from rest_framework             import status
 from rest_framework.authtoken.models import Token
+
 from webauthn import (
     generate_registration_options,
     verify_registration_response,
@@ -19,6 +22,8 @@ from webauthn.helpers.structs import (
     AuthenticatorAttachment,
     RegistrationCredential,
     AuthenticationCredential,
+    AuthenticatorAttestationResponse,
+    AuthenticatorAssertionResponse,
     PublicKeyCredentialDescriptor,
     PublicKeyCredentialType,
 )
@@ -27,13 +32,26 @@ from webauthn.helpers import bytes_to_base64url, base64url_to_bytes
 from ..models import User, WebAuthnCredential, WebAuthnChallenge
 
 
-# ── Change this when deploying ──
-# Local testing  → RP_ID = '127.0.0.1',          RP_ORIGIN = 'http://127.0.0.1:8000'
-# ngrok testing  → RP_ID = 'abc.ngrok-free.app', RP_ORIGIN = 'https://abc.ngrok-free.app'
-# Production     → RP_ID = 'yourdomain.com',      RP_ORIGIN = 'https://yourdomain.com'
-RP_ID     = 'vasiliki-lamiaceous-longingly.ngrok-free.dev'
-RP_NAME   = 'Uni Attendance'
-RP_ORIGIN = 'https://vasiliki-lamiaceous-longingly.ngrok-free.dev'
+RP_NAME = 'Uni Attendance'
+
+
+def get_rp_config(request):
+    """
+    Dynamically derive RP_ID and RP_ORIGIN from the HTTP request.
+    This ensures WebAuthn works on localhost, 127.0.0.1, ngrok, or
+    any production domain without any manual code changes.
+
+    RP_ID     = hostname only       e.g. localhost | abc.ngrok-free.app
+    RP_ORIGIN = full origin URL     e.g. http://localhost:8000
+    """
+    origin = (
+        request.META.get('HTTP_ORIGIN')
+        or request.META.get('HTTP_REFERER', '').rstrip('/')
+        or request.build_absolute_uri('/').rstrip('/')
+    )
+    parsed = urlparse(origin)
+    rp_id  = parsed.hostname   # hostname only — no port, no scheme
+    return rp_id, origin
 
 
 # ════════════════════════════════════════════════════════════
@@ -51,32 +69,20 @@ def webauthn_register_begin(request):
     Returns options the browser passes to navigator.credentials.create()
     which triggers the fingerprint or face ID prompt on the device.
 
-    A user can register multiple devices (e.g. phone and laptop).
+    One-device policy: each account can only have one registered credential.
 
     Auth required: Yes (Token)
 
     Returns:
         200  { challenge, rp, user, pubKeyCredParams, ... }
+        403  { error }  — device already registered to this account
     """
     user          = request.user
-    raw_challenge = os.urandom(32)
+    rp_id, origin = get_rp_config(request)
 
-    # Delete any previous unused challenge for this user
-    WebAuthnChallenge.objects.filter(user=user).delete()
-
-    # Save challenge temporarily — deleted after verification
-    WebAuthnChallenge.objects.create(
-        user      = user,
-        challenge = base64.b64encode(raw_challenge).decode('utf-8'),
-    )
-
-    # ── One-Device Policy ──
-    # Each user is restricted to a single registered biometric device.
-    # This prevents buddy registration — a student registering their own
-    # fingerprint on a friend's account to mark attendance for both people.
-    # For legitimate cases (new phone), a lecturer must call
-    # POST /api/webauthn/reset/{student_id}/ to wipe the old credential first,
-    # then the student gets a one-time window to register the new device.
+    # ── One-device policy ──
+    # Each account is limited to one biometric credential.
+    # For a new phone, a lecturer must call reset_student_biometric first.
     if WebAuthnCredential.objects.filter(user=user).exists():
         return Response(
             {
@@ -89,8 +95,19 @@ def webauthn_register_begin(request):
             status=status.HTTP_403_FORBIDDEN
         )
 
+    raw_challenge = os.urandom(32)
+
+    # Delete any previous unused challenge for this user
+    WebAuthnChallenge.objects.filter(user=user).delete()
+
+    # Save challenge temporarily — deleted after verification
+    WebAuthnChallenge.objects.create(
+        user      = user,
+        challenge = base64.b64encode(raw_challenge).decode('utf-8'),
+    )
+
     options = generate_registration_options(
-        rp_id             = RP_ID,
+        rp_id             = rp_id,
         rp_name           = RP_NAME,
         user_id           = str(user.id).encode(),
         user_name         = user.username,
@@ -135,9 +152,11 @@ def webauthn_register_complete(request):
 
     Returns:
         201  { message }
-        400  { error }
+        400  { error }  — verification failed or no challenge found
+        403  { error }  — device already linked to another account
     """
-    user = request.user
+    user          = request.user
+    rp_id, origin = get_rp_config(request)
 
     try:
         challenge_obj = WebAuthnChallenge.objects.filter(user=user).latest('created_at')
@@ -147,24 +166,24 @@ def webauthn_register_complete(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    device_name = request.data.get('device_name', 'My Device')
+    device_name   = request.data.get('device_name', 'My Device')
+    response_data = request.data.get('response', {})
 
-    # Build the credential from individual fields
-    # The response must be constructed using AuthenticatorAttestationResponse
-    # not passed as a raw dict — py-webauthn needs proper typed objects
     try:
-        from webauthn.helpers.structs import AuthenticatorAttestationResponse
-        response_data = request.data.get('response', {})
         credential = RegistrationCredential(
             id       = request.data.get('id'),
             raw_id   = base64url_to_bytes(
                 request.data.get('rawId', request.data.get('id'))
             ),
             response = AuthenticatorAttestationResponse(
-                client_data_json    = base64url_to_bytes(response_data.get('clientDataJSON', '')),
-                attestation_object  = base64url_to_bytes(response_data.get('attestationObject', '')),
+                client_data_json   = base64url_to_bytes(
+                    response_data.get('clientDataJSON', '')
+                ),
+                attestation_object = base64url_to_bytes(
+                    response_data.get('attestationObject', '')
+                ),
             ),
-            type     = request.data.get('type', 'public-key'),
+            type = request.data.get('type', 'public-key'),
         )
     except Exception as e:
         return Response(
@@ -175,14 +194,14 @@ def webauthn_register_complete(request):
     try:
         # py_webauthn verifies:
         # 1. Challenge matches what we sent
-        # 2. Origin matches RP_ORIGIN
+        # 2. Origin matches the request origin
         # 3. Attestation is valid
         # 4. Public key is correctly formatted
         verified = verify_registration_response(
             credential                = credential,
             expected_challenge        = base64.b64decode(challenge_obj.challenge),
-            expected_rp_id            = RP_ID,
-            expected_origin           = RP_ORIGIN,
+            expected_rp_id            = rp_id,
+            expected_origin           = origin,
             require_user_verification = True,
         )
     except Exception as e:
@@ -191,16 +210,86 @@ def webauthn_register_complete(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Save the public key — used to verify all future logins
-    WebAuthnCredential.objects.create(
-        user          = user,
-        credential_id = bytes_to_base64url(verified.credential_id),
-        public_key    = base64.b64encode(
-            verified.credential_public_key
-        ).decode('utf-8'),
-        sign_count    = verified.sign_count,
-        device_name   = device_name,
-    )
+    new_credential_id = bytes_to_base64url(verified.credential_id)
+    new_public_key    = base64.b64encode(
+        verified.credential_public_key
+    ).decode('utf-8')
+
+    # ── Cross-account uniqueness checks ──
+    # Three independent checks to prevent the same physical device from
+    # being registered to multiple accounts.
+    #
+    # Check 1: credential_id — unique key pair identifier per device per RP
+    if WebAuthnCredential.objects.filter(credential_id=new_credential_id).exists():
+        challenge_obj.delete()
+        return Response(
+            {
+                'error': (
+                    'This device is already linked to another account. '
+                    'A biometric device can only be registered to one account. '
+                    'If you believe this is a mistake, contact the admin.'
+                )
+            },
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    # Check 2: public_key — the actual cryptographic key bytes
+    # Two registrations on the same device produce the same public key
+    if WebAuthnCredential.objects.filter(public_key=new_public_key).exists():
+        challenge_obj.delete()
+        return Response(
+            {
+                'error': (
+                    'This device is already linked to another account. '
+                    'A biometric device can only be registered to one account. '
+                    'If you believe this is a mistake, contact the admin.'
+                )
+            },
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    # Check 3: aaguid — identifies the authenticator model (e.g. Pixel 6 fingerprint sensor)
+    # If the same authenticator model AND same user is detected, block it
+    # This catches edge cases where credential_id differs but it is the same hardware
+    if hasattr(verified, 'aaguid') and verified.aaguid:
+        aaguid_str = str(verified.aaguid)
+        if (aaguid_str != '00000000-0000-0000-0000-000000000000' and
+                WebAuthnCredential.objects.filter(aaguid=aaguid_str).exists()):
+            challenge_obj.delete()
+            return Response(
+                {
+                    'error': (
+                        'This device is already linked to another account. '
+                        'A biometric device can only be registered to one account. '
+                        'If you believe this is a mistake, contact the admin.'
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+    # Save the public key — used to verify all future attendance markings
+    # try/except catches any race condition where two requests slip past
+    # the checks above simultaneously
+    try:
+        WebAuthnCredential.objects.create(
+            user          = user,
+            credential_id = new_credential_id,
+            public_key    = new_public_key,
+            sign_count    = verified.sign_count,
+            device_name   = device_name,
+            aaguid        = str(verified.aaguid) if hasattr(verified, 'aaguid') and verified.aaguid else '',
+        )
+    except Exception:
+        challenge_obj.delete()
+        return Response(
+            {
+                'error': (
+                    'This device is already linked to another account. '
+                    'A biometric device can only be registered to one account.'
+                )
+            },
+            status=status.HTTP_403_FORBIDDEN
+        )
 
     # Delete the challenge — single use only
     challenge_obj.delete()
@@ -212,45 +301,28 @@ def webauthn_register_complete(request):
 
 
 # ════════════════════════════════════════════════════════════
-#  AUTHENTICATION — STEP 1
-#  Generate challenge for login attempt
+#  ATTENDANCE — STEP 1
+#  Generate challenge before marking attendance
 # ════════════════════════════════════════════════════════════
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
-def webauthn_login_begin(request):
+@permission_classes([IsAuthenticated])
+def webauthn_attendance_begin(request):
     """
-    POST /api/webauthn/login/begin/
+    POST /api/webauthn/attendance/begin/
 
-    Called when the user taps 'Login with Biometrics'.
-    Returns a challenge and the list of credentials the user has
-    registered so the browser knows which key to use.
+    Called when a student taps 'Confirm with Biometric' on the
+    attendance modal. Returns a challenge the browser passes to
+    navigator.credentials.get() to trigger the biometric prompt.
 
-    Auth required: No
-
-    Request body:
-        username (str)
+    Auth required: Yes (Token — student)
 
     Returns:
         200  { challenge, allowCredentials, rpId, ... }
         400  { error }  — no biometric registered
-        404  { error }  — user not found
     """
-    username = request.data.get('username')
-
-    if not username:
-        return Response(
-            {'error': 'Username is required.'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    try:
-        user = User.objects.get(username=username)
-    except User.DoesNotExist:
-        return Response(
-            {'error': 'User not found.'},
-            status=status.HTTP_404_NOT_FOUND
-        )
+    user          = request.user
+    rp_id, origin = get_rp_config(request)
 
     credentials = WebAuthnCredential.objects.filter(user=user)
     if not credentials.exists():
@@ -258,8 +330,7 @@ def webauthn_login_begin(request):
             {
                 'error': (
                     'No biometric registered for this account. '
-                    'Please log in with your password first, then register '
-                    'your biometric from your profile page.'
+                    'Please go to your profile page and register your biometric first.'
                 )
             },
             status=status.HTTP_400_BAD_REQUEST
@@ -284,7 +355,7 @@ def webauthn_login_begin(request):
     ]
 
     options = generate_authentication_options(
-        rp_id             = RP_ID,
+        rp_id             = rp_id,
         challenge         = raw_challenge,
         allow_credentials = allowed_credentials,
         user_verification = UserVerificationRequirement.REQUIRED,
@@ -294,61 +365,119 @@ def webauthn_login_begin(request):
 
 
 # ════════════════════════════════════════════════════════════
-#  AUTHENTICATION — STEP 2
-#  Verify signature and return auth token
+#  ATTENDANCE — STEP 2
+#  Verify biometric signature then mark attendance
 # ════════════════════════════════════════════════════════════
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
-def webauthn_login_complete(request):
+@permission_classes([IsAuthenticated])
+def webauthn_attendance_complete(request):
     """
-    POST /api/webauthn/login/complete/
+    POST /api/webauthn/attendance/complete/
 
-    Verifies the signature produced by the device's private key.
-    Returns the auth token if verification passes.
+    Verifies the biometric signature AND the GPS geofence in one step.
+    Only creates an attendance record if both pass.
 
-    Auth required: No
+    Auth required: Yes (Token — student)
 
     Request body:
-        username  (str) — the user's username
-        id        (str) — base64url credential ID
-        rawId     (str) — same as id
-        response  (obj) — clientDataJSON, authenticatorData, signature
-        type      (str) — must be 'public-key'
+        session_id        (int)   — active session ID
+        latitude          (float) — student's GPS latitude
+        longitude         (float) — student's GPS longitude
+        id                (str)   — base64url credential ID
+        rawId             (str)   — same as id
+        response          (obj)   — clientDataJSON, authenticatorData, signature
+        type              (str)   — must be 'public-key'
 
     Returns:
-        200  { token, username, is_student, is_lecturer }
-        400  { error }  — verification failed
-        404  { error }  — user or credential not found
+        201  { message, distance_metres, attendance_id }
+        400  { error }  — missing fields / inactive session / duplicate
+        403  { error, distance_metres, allowed_radius }  — outside geofence
+        403  { error }  — biometric verification failed
+        404  { error }  — session not found
     """
-    username      = request.data.get('username')
-    credential_id = request.data.get('id') or request.data.get('rawId')
+    from django.utils import timezone
+    import math
 
-    if not username:
+    user          = request.user
+    rp_id, origin = get_rp_config(request)
+
+    # ── Validate GPS fields ──
+    session_id = request.data.get('session_id')
+    latitude   = request.data.get('latitude')
+    longitude  = request.data.get('longitude')
+
+    if not all([session_id, latitude is not None, longitude is not None]):
         return Response(
-            {'error': 'Username is required.'},
+            {'error': 'session_id, latitude and longitude are all required.'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    if not credential_id:
-        return Response(
-            {'error': 'Credential ID is required.'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
+    # ── Check session exists ──
+    from ..models import Session, Attendance
     try:
-        user = User.objects.get(username=username)
-    except User.DoesNotExist:
+        session = Session.objects.get(id=session_id)
+    except Session.DoesNotExist:
         return Response(
-            {'error': 'User not found.'},
+            {'error': 'Session not found.'},
             status=status.HTTP_404_NOT_FOUND
         )
 
+    # ── Check session is active ──
+    now = timezone.now()
+    if not (session.start_time <= now <= session.end_time):
+        return Response(
+            {'error': 'This session is not currently active.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # ── Check for duplicate attendance ──
+    if Attendance.objects.filter(student=user, session=session).exists():
+        return Response(
+            {'error': 'You have already marked attendance for this session.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # ── Geofence check ──
+    def haversine(lat1, lon1, lat2, lon2):
+        R    = 6371000
+        phi1 = math.radians(lat1)
+        phi2 = math.radians(lat2)
+        dphi = math.radians(lat2 - lat1)
+        dlam = math.radians(lon2 - lon1)
+        a    = (math.sin(dphi / 2) ** 2
+                + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2)
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    distance       = haversine(
+        float(latitude), float(longitude),
+        float(session.latitude), float(session.longitude),
+    )
+    allowed_radius = session.radius_metres or 50
+
+    if distance > allowed_radius:
+        return Response(
+            {
+                'error':           'You are outside the geofence.',
+                'distance_metres': round(distance),
+                'allowed_radius':  allowed_radius,
+            },
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    # ── Biometric verification ──
     try:
         challenge_obj = WebAuthnChallenge.objects.filter(user=user).latest('created_at')
     except WebAuthnChallenge.DoesNotExist:
         return Response(
-            {'error': 'No challenge found. Please start login again.'},
+            {'error': 'No challenge found. Please try again.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    credential_id = request.data.get('id') or request.data.get('rawId')
+    if not credential_id:
+        return Response(
+            {'error': 'Credential ID is required.'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -359,24 +488,30 @@ def webauthn_login_complete(request):
         )
     except WebAuthnCredential.DoesNotExist:
         return Response(
-            {'error': 'Credential not recognised. Please register your biometric again.'},
+            {'error': 'Biometric credential not recognised. Please re-register your biometric.'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    response_data = request.data.get('response', {})
+
     try:
-        from webauthn.helpers.structs import AuthenticatorAssertionResponse
-        response_data = request.data.get('response', {})
         credential = AuthenticationCredential(
             id       = request.data.get('id'),
             raw_id   = base64url_to_bytes(credential_id),
             response = AuthenticatorAssertionResponse(
-                client_data_json    = base64url_to_bytes(response_data.get('clientDataJSON', '')),
-                authenticator_data  = base64url_to_bytes(response_data.get('authenticatorData', '')),
-                signature           = base64url_to_bytes(response_data.get('signature', '')),
-                user_handle         = base64url_to_bytes(response_data['userHandle'])
-                                      if response_data.get('userHandle') else None,
+                client_data_json   = base64url_to_bytes(
+                    response_data.get('clientDataJSON', '')
+                ),
+                authenticator_data = base64url_to_bytes(
+                    response_data.get('authenticatorData', '')
+                ),
+                signature          = base64url_to_bytes(
+                    response_data.get('signature', '')
+                ),
+                user_handle        = base64url_to_bytes(response_data['userHandle'])
+                                     if response_data.get('userHandle') else None,
             ),
-            type     = request.data.get('type', 'public-key'),
+            type = request.data.get('type', 'public-key'),
         )
     except Exception as e:
         return Response(
@@ -387,15 +522,15 @@ def webauthn_login_complete(request):
     try:
         # py_webauthn verifies:
         # 1. Challenge matches what we sent
-        # 2. Origin matches RP_ORIGIN
+        # 2. Origin matches the request origin
         # 3. Signature was produced by the private key matching our stored public key
         # 4. Sign count has increased (detects cloned credentials)
         # 5. User verification was performed (biometric confirmed on device)
         verified = verify_authentication_response(
             credential                    = credential,
             expected_challenge            = base64.b64decode(challenge_obj.challenge),
-            expected_rp_id                = RP_ID,
-            expected_origin               = RP_ORIGIN,
+            expected_rp_id                = rp_id,
+            expected_origin               = origin,
             credential_public_key         = base64.b64decode(stored_credential.public_key),
             credential_current_sign_count = stored_credential.sign_count,
             require_user_verification     = True,
@@ -403,7 +538,7 @@ def webauthn_login_complete(request):
     except Exception as e:
         return Response(
             {'error': f'Biometric verification failed: {str(e)}'},
-            status=status.HTTP_400_BAD_REQUEST
+            status=status.HTTP_403_FORBIDDEN
         )
 
     # Update sign count — if it ever goes backwards someone cloned the credential
@@ -413,19 +548,25 @@ def webauthn_login_complete(request):
     # Delete the used challenge
     challenge_obj.delete()
 
-    # Return the auth token
-    token, _ = Token.objects.get_or_create(user=user)
+    # ── All checks passed — create the attendance record ──
+    attendance = Attendance.objects.create(
+        student = user,
+        session = session,
+        status  = 'PRESENT',
+    )
 
-    return Response({
-        'token':       token.key,
-        'username':    user.username,
-        'is_student':  user.is_student,
-        'is_lecturer': user.is_lecturer,
-    }, status=status.HTTP_200_OK)
+    return Response(
+        {
+            'message':         'Attendance marked successfully.',
+            'distance_metres': round(distance),
+            'attendance_id':   attendance.id,
+        },
+        status=status.HTTP_201_CREATED
+    )
 
 
 # ════════════════════════════════════════════════════════════
-#  MANAGE DEVICES
+#  LIST REGISTERED DEVICES
 # ════════════════════════════════════════════════════════════
 
 @api_view(['GET'])
@@ -435,7 +576,7 @@ def webauthn_list_credentials(request):
     GET /api/webauthn/credentials/
 
     Returns all biometric devices registered by the authenticated user.
-    Used to populate a 'Manage Devices' section on the profile page.
+    Used to populate the 'Biometric Login' card on the profile page.
 
     Auth required: Yes (Token)
 
@@ -456,6 +597,10 @@ def webauthn_list_credentials(request):
     return Response(data, status=status.HTTP_200_OK)
 
 
+# ════════════════════════════════════════════════════════════
+#  DELETE A REGISTERED DEVICE
+# ════════════════════════════════════════════════════════════
+
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def webauthn_delete_credential(request, credential_id):
@@ -463,7 +608,6 @@ def webauthn_delete_credential(request, credential_id):
     DELETE /api/webauthn/credentials/{id}/
 
     Removes a registered biometric credential.
-    Useful when a user loses their phone or wants to re-register.
     Users can only delete their own credentials.
 
     Auth required: Yes (Token)
@@ -506,6 +650,9 @@ def reset_student_biometric(request, student_id):
     for a specific student. Used when a student loses their phone
     or needs to re-register on a new device.
 
+    The lecturer must verify the student's identity in person
+    before calling this endpoint.
+
     Auth required: Yes (Token) — Lecturer or Admin only
 
     Returns:
@@ -513,9 +660,9 @@ def reset_student_biometric(request, student_id):
         403  { error }  — not a lecturer or admin
         404  { error }  — student not found
     """
-    if not (request.user.is_lecturer or request.user.is_staff):
+    if not request.user.is_staff:
         return Response(
-            {'error': 'Only lecturers and admins can reset student biometrics.'},
+            {'error': 'Only admins can reset student biometrics.'},
             status=status.HTTP_403_FORBIDDEN
         )
 

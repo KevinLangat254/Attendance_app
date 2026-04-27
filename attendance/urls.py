@@ -1,39 +1,64 @@
-from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-
-from attendance.views.auth_views import webauthn_delete_credential, webauthn_list_credentials
-from . import views
+from django.urls import path, include
+from .views import (
+    # ── ViewSets ──
+    UserViewSet,
+    ProgramViewSet,
+    EnrollmentViewSet,
+    UnitViewSet,
+    SessionViewSet,
+    AttendanceViewSet,
+    # ── Base views ──
+    claim_unit,
+    unclaim_unit,
+    upload_avatar,
+    # ── Attendance ──
+    MarkAttendanceView,
+    # ── WebAuthn ──
+    webauthn_register_begin,
+    webauthn_register_complete,
+    webauthn_list_credentials,
+    webauthn_delete_credential,
+    reset_student_biometric,
+    webauthn_attendance_begin,
+    webauthn_attendance_complete,
+)
 
 router = DefaultRouter()
-router.register(r"users",       views.UserViewSet,       basename="user")
-router.register(r"enrollments", views.EnrollmentViewSet, basename="enrollment")
-router.register(r"attendance",  views.AttendanceViewSet, basename="attendance")
-router.register(r"programs",    views.ProgramViewSet)
-router.register(r"units",       views.UnitViewSet)
-router.register(r"sessions",    views.SessionViewSet)
+router.register(r'users',       UserViewSet,       basename='user')
+router.register(r'programs',    ProgramViewSet)
+router.register(r'enrollments', EnrollmentViewSet, basename='enrollment')
+router.register(r'units',       UnitViewSet)
+router.register(r'sessions',    SessionViewSet)
+router.register(r'attendance',  AttendanceViewSet, basename='attendance')
 
 urlpatterns = [
-    # Custom endpoints — must be before router.urls
-    path('units/<int:unit_id>/claim/',   views.claim_unit,   name='claim-unit'),
-    path('units/<int:unit_id>/unclaim/', views.unclaim_unit, name='unclaim-unit'),
-    path('mark-attendance/', views.MarkAttendanceView.as_view()),
-    path('upload-avatar/', views.upload_avatar, name='upload-avatar'),
 
-    # ── WebAuthn Registration (Linking a phone) ──
-    path('webauthn/register/begin/', views.webauthn_register_begin, name='webauthn-register-begin'),
-    path('webauthn/register/complete/', views.webauthn_register_complete, name='webauthn-register-complete'),
+    # ── Unit claim / unclaim ──
+    path('units/<int:unit_id>/claim/',   claim_unit),
+    path('units/<int:unit_id>/unclaim/', unclaim_unit),
 
-    # ── WebAuthn Authentication (Verifying identity) ──
-    path('webauthn/login/begin/', views.webauthn_login_begin, name='webauthn-login-begin'),
-    path('webauthn/login/complete/', views.webauthn_login_complete, name='webauthn-login-complete'),
+    # ── Attendance marking ──
+    path('mark-attendance/', MarkAttendanceView.as_view()),
+
+    # ── Avatar upload ──
+    path('upload-avatar/', upload_avatar),
+
+    # ── WebAuthn — Biometric Registration ──
+    path('webauthn/register/begin/',    webauthn_register_begin),
+    path('webauthn/register/complete/', webauthn_register_complete),
 
     # ── WebAuthn — Manage Devices ──
-    path('webauthn/credentials/', webauthn_list_credentials, name='webauthn-list-credentials'),
-    path('webauthn/credentials/delete/<int:credential_id>/', webauthn_delete_credential, name='webauthn-delete-credential'),
+    path('webauthn/credentials/',                            webauthn_list_credentials),
+    path('webauthn/credentials/<int:credential_id>/delete/', webauthn_delete_credential),
 
-    # ── Administrative Override ──
-    path('webauthn/reset-student/<int:student_id>/', views.reset_student_biometric, name='webauthn-reset'),
+    # ── WebAuthn — Lecturer Reset Student Biometric ──
+    path('webauthn/reset/<int:student_id>/', reset_student_biometric),
 
-    # Router URLs
+    # ── WebAuthn — Attendance Biometric Verification ──
+    path('webauthn/attendance/begin/',    webauthn_attendance_begin),
+    path('webauthn/attendance/complete/', webauthn_attendance_complete),
+
+    # ── Router URLs — must be last ──
     path('', include(router.urls)),
 ]
