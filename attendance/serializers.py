@@ -67,16 +67,50 @@ class UnitSerializer(serializers.ModelSerializer):
 
 
 class SessionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Session
-        fields = ["id", "unit", "start_time", "end_time", "latitude", "longitude"]
+    unit_name = serializers.SerializerMethodField()
+    unit_code = serializers.SerializerMethodField()
 
+    class Meta:
+        model  = Session
+        fields = ['id', 'unit', 'start_time', 'end_time',
+                  'latitude', 'longitude', 'radius_metres',
+                  'unit_name', 'unit_code']
+
+    def get_unit_name(self, obj):
+        return obj.unit.name if obj.unit else None
+
+    def get_unit_code(self, obj):
+        return obj.unit.unit_code if obj.unit else None
+
+
+# class AttendanceSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Attendance
+#         fields = ["id", "student", "session", "timestamp", "status"]
+
+#     def validate_student(self, user):
+#         if not user.is_student:
+#             raise serializers.ValidationError("This user is not a student.")
+#         return user
 
 class AttendanceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Attendance
-        fields = ["id", "student", "session", "timestamp", "status"]
+    student_username  = serializers.SerializerMethodField()
+    student_full_name = serializers.SerializerMethodField()
 
+    class Meta:
+        model  = Attendance
+        fields = ['id', 'student', 'session', 'timestamp', 'status',
+                  'student_username', 'student_full_name']
+
+    def get_student_username(self, obj):
+        return obj.student.username if obj.student else None
+
+    def get_student_full_name(self, obj):
+        if obj.student:
+            name = f"{obj.student.first_name} {obj.student.last_name}".strip()
+            return name or obj.student.username
+        return None
+    
     def validate_student(self, user):
         if not user.is_student:
             raise serializers.ValidationError("This user is not a student.")

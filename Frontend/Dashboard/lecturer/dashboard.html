@@ -1712,6 +1712,9 @@
     }
 
     // ── SELECT SESSION → SHOW REPORT ──
+    // Store current report data for PDF download
+    let currentReportData = { unitName: '', date: '', attendance: [] };
+
     async function selectSession(sessionId, unitName, date) {
       // Highlight selected
       document.querySelectorAll('.session-item').forEach(el => el.classList.remove('selected'));
@@ -1720,6 +1723,10 @@
       document.getElementById('reportTitle').textContent    = unitName;
       document.getElementById('reportSubtitle').textContent = date;
       document.getElementById('reportList').innerHTML       = `<div class="skeleton" style="height:50px;margin:0.8rem;"></div>`.repeat(4);
+
+      // Hide download button while loading
+      const dlBtn = document.getElementById('downloadPdfBtn');
+      if (dlBtn) dlBtn.style.display = 'none';
 
       try {
         const attendance = await apiFetch(`/attendance/?session=${sessionId}`);
@@ -1732,6 +1739,9 @@
         document.getElementById('repAbsent').textContent  = total - present;
         document.getElementById('repRate').textContent    = rate;
 
+        // Cache for PDF download
+        currentReportData = { unitName, date, attendance, present, total, rate };
+
         if (attendance.length === 0) {
           document.getElementById('reportList').innerHTML = `
             <div class="report-empty">No attendance records for this session yet.</div>`;
@@ -1739,16 +1749,21 @@
         }
 
         document.getElementById('reportList').innerHTML = attendance.map(a => {
-          const ts     = new Date(a.timestamp);
-          const status = a.status.toLowerCase();
-          const initials = (a.student_username || 'S').charAt(0).toUpperCase();
+          const ts       = new Date(a.timestamp);
+          const status   = a.status.toLowerCase();
+          // Use full name if available, fall back to username, then ID
+          const fullName = a.student_full_name || a.student_username || 'Student #' + a.student;
+          const initials = fullName.charAt(0).toUpperCase();
           return `
           <div class="report-student">
             <div class="student-info">
               <div class="student-avatar">${initials}</div>
               <div>
-                <div class="student-name">${a.student_username || 'Student #' + a.student}</div>
-                <div class="student-time">${ts.toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})}</div>
+                <div class="student-name">${fullName}</div>
+                <div class="student-time">
+                  @${a.student_username || ''} &nbsp;·&nbsp;
+                  ${ts.toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})}
+                </div>
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:0.5rem;">
@@ -1758,10 +1773,90 @@
           </div>`;
         }).join('');
 
+        // Show download button now that data is loaded
+        if (dlBtn) dlBtn.style.display = 'inline-flex';
+
       } catch (err) {
         document.getElementById('reportList').innerHTML =
           `<div class="report-empty">Failed to load attendance data.</div>`;
       }
+    }
+
+    // ── DOWNLOAD ATTENDANCE REPORT AS PDF ──
+    function downloadAttendancePdf() {
+      const { unitName, date, attendance, present, total, rate } = currentReportData;
+      if (!attendance || attendance.length === 0) return;
+
+      // Build an HTML page and print it as PDF using the browser's print dialog
+      const rows = attendance.map((a, i) => {
+        const ts       = new Date(a.timestamp);
+        const fullName = a.student_full_name || a.student_username || 'Student #' + a.student;
+        const time     = ts.toLocaleTimeString('en-KE', {hour:'2-digit', minute:'2-digit'});
+        const rowBg    = i % 2 === 0 ? '#ffffff' : '#f9f9f9';
+        const statusColor = a.status === 'PRESENT' ? '#00875A' : '#cc0000';
+        return `
+          <tr style="background:${rowBg};">
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;">${i + 1}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;">${fullName}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;color:#555;">@${a.student_username || '-'}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;">${time}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;color:${statusColor};font-weight:600;">${a.status}</td>
+          </tr>`;
+      }).join('');
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Attendance Report — ${unitName}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; color: #222; }
+            h1   { color: #0B3D6B; font-size: 20px; margin-bottom: 4px; }
+            .sub { color: #555; font-size: 13px; margin-bottom: 24px; }
+            .stats { display: flex; gap: 32px; margin-bottom: 24px; }
+            .stat  { text-align: center; }
+            .stat-val   { font-size: 28px; font-weight: 700; color: #0B3D6B; }
+            .stat-label { font-size: 12px; color: #777; margin-top: 2px; }
+            table  { width: 100%; border-collapse: collapse; font-size: 13px; }
+            thead  { background: #0B3D6B; color: #fff; }
+            thead th { padding: 10px 12px; text-align: left; }
+            @media print {
+              body { margin: 20px; }
+              button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Uni Attendance — ${unitName}</h1>
+          <div class="sub">Session Date: ${date} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString('en-KE')}</div>
+          <div class="stats">
+            <div class="stat"><div class="stat-val">${total}</div><div class="stat-label">Total</div></div>
+            <div class="stat"><div class="stat-val" style="color:#00875A;">${present}</div><div class="stat-label">Present</div></div>
+            <div class="stat"><div class="stat-val" style="color:#cc0000;">${total - present}</div><div class="stat-label">Absent</div></div>
+            <div class="stat"><div class="stat-val">${rate}</div><div class="stat-label">Rate</div></div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Full Name</th>
+                <th>Username</th>
+                <th>Time Marked</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body>
+        </html>`;
+
+      // Open in a new window and trigger print dialog (saves as PDF)
+      const win = window.open('', '_blank');
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      // Small delay to ensure content is rendered before printing
+      setTimeout(() => { win.print(); }, 500);
     }
 
     // ── UNIT MANAGEMENT STATE ──
