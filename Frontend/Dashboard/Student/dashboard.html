@@ -1097,18 +1097,13 @@
         }
 
         // Use the most recent active enrollment
-        const enrollment     = enrollments.find(e => e.is_active) || enrollments[0];
-        const programId      = enrollment.program;
-        const currentYear    = enrollment.current_year;
-        const currentSem     = enrollment.current_semester;
+        const enrollment = enrollments.find(e => e.is_active) || enrollments[0];
 
-        // Step 3 — Fetch all units and filter by program + year + semester
-        const allUnits     = await apiFetch('/units/');
-        const studentUnits = allUnits.filter(u =>
-          u.program  === programId &&
-          u.year     === currentYear &&
-          u.semester === currentSem
-        );
+        // Step 3 — Fetch only relevant units directly from the server
+        
+        const studentUnits = await apiFetch(
+          `/units/?program=${enrollment.program}&year=${enrollment.current_year}&semester=${enrollment.current_semester}`
+       );
 
         if (studentUnits.length === 0) {
           grid.innerHTML = `
@@ -1285,10 +1280,20 @@
         const users   = await apiFetch('/users/');
         const profile = users.find(u => u.username === username);
 
-        // Fetch only this student's attendance records
-        const records = profile
-          ? await apiFetch(`/attendance/?student=${profile.id}`)
-          : await apiFetch('/attendance/');
+        // Fetch attendance records, sessions, and units in parallel
+        const [records, allSessions, allUnits] = await Promise.all([
+          profile
+            ? apiFetch(`/attendance/?student=${profile.id}`)
+            : apiFetch('/attendance/'),
+          apiFetch('/sessions/'),
+          apiFetch('/units/'),
+        ]);
+
+        // Build lookup maps for fast access
+        const sessionMap = {};
+        allSessions.forEach(s => sessionMap[s.id] = s);
+        const unitMap = {};
+        allUnits.forEach(u => unitMap[u.id] = u);
 
         // Track already-marked sessions
         records.forEach(r => {
@@ -1310,11 +1315,35 @@
         }
 
         body.innerHTML = records.map(r => {
-          const ts     = new Date(r.timestamp);
-          const status = r.status.toLowerCase();
+          const ts      = new Date(r.timestamp);
+          const status  = r.status.toLowerCase();
+
+          // Resolve unit name — try multiple sources in order of reliability:
+          // 1. session.unit_name (from updated SessionSerializer)
+          // 2. unit lookup via unitMap
+          // 3. session_unit_name from AttendanceSerializer
+          // 4. fallback to session ID
+          const session  = sessionMap[r.session];
+          let unitName   = '';
+
+          if (session && session.unit_name) {
+            // SessionSerializer now returns unit_name directly
+            unitName = session.unit_code
+              ? `${session.unit_name} (${session.unit_code})`
+              : session.unit_name;
+          } else if (session) {
+            // Fall back to unit lookup map
+            const unit = unitMap[session.unit];
+            unitName   = unit
+              ? `${unit.name} (${unit.unit_code})`
+              : (r.session_unit_name || `Session #${r.session}`);
+          } else {
+            unitName = r.session_unit_name || `Session #${r.session}`;
+          }
+
           return `
           <tr>
-            <td>${r.session_unit_name || 'Session #' + r.session}</td>
+            <td>${unitName}</td>
             <td>${ts.toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'})}</td>
             <td>${ts.toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})}</td>
             <td><span class="status-pill ${status}">${r.status}</span></td>

@@ -29,7 +29,10 @@ urlpatterns = [
     path('profile.html', TemplateView.as_view(template_name='profile.html'), name='profile'),
     path('dashboard/student/dashboard.html', TemplateView.as_view(template_name='dashboard/student/dashboard.html'), name='student-dashboard'),
     path('dashboard/lecturer/dashboard.html', TemplateView.as_view(template_name='dashboard/lecturer/dashboard.html'), name='lecturer-dashboard'),
-
+    path('reset-password.html',
+     TemplateView.as_view(template_name='reset-password.html'),
+     name='reset-password'),
+     
     # ── API endpoints ──
     path("api/", include("attendance.urls")),
     path('api/auth/login/', obtain_auth_token), 

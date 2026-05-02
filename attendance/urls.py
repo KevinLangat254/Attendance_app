@@ -22,14 +22,16 @@ from .views import (
     reset_student_biometric,
     webauthn_attendance_begin,
     webauthn_attendance_complete,
+    forgot_password,
+    reset_password,
 )
 
 router = DefaultRouter()
 router.register(r'users',       UserViewSet,       basename='user')
 router.register(r'programs',    ProgramViewSet)
 router.register(r'enrollments', EnrollmentViewSet, basename='enrollment')
-router.register(r'units',       UnitViewSet)
-router.register(r'sessions',    SessionViewSet)
+router.register(r'units',       UnitViewSet,       basename='unit')
+router.register(r'sessions',    SessionViewSet,    basename='session')
 router.register(r'attendance',  AttendanceViewSet, basename='attendance')
 
 urlpatterns = [
@@ -58,6 +60,10 @@ urlpatterns = [
     # ── WebAuthn — Attendance Biometric Verification ──
     path('webauthn/attendance/begin/',    webauthn_attendance_begin),
     path('webauthn/attendance/complete/', webauthn_attendance_complete),
+
+    # ── Password Reset ──
+    path('auth/forgot-password/', forgot_password),
+    path('auth/reset-password/',  reset_password),
 
     # ── Router URLs — must be last ──
     path('', include(router.urls)),

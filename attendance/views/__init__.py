@@ -2,6 +2,8 @@
 # exposes all views so urls.py can import from .views as before.
 
 from .base_views import (
+    forgot_password,
+    reset_password,
     UserViewSet,
     ProgramViewSet,
     EnrollmentViewSet,

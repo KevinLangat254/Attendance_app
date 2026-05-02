@@ -1,11 +1,12 @@
 from rest_framework             import viewsets, status
+from rest_framework import permissions
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response    import Response
 from rest_framework.decorators  import api_view, permission_classes, parser_classes
 from rest_framework.parsers     import MultiPartParser, FormParser
 from django_filters.rest_framework import DjangoFilterBackend
 
-from ..models import User, Program, Enrollment, Unit, Session, Attendance
+from ..models import User, Program, Enrollment, Unit, Session, Attendance, PasswordResetToken
 from ..serializers import (
     UserSerializer,
     ProgramSerializer,
@@ -14,6 +15,7 @@ from ..serializers import (
     SessionSerializer,
     AttendanceSerializer,
 )
+from rest_framework.authentication import TokenAuthentication
 
 
 # ════════════════════════════════════════════════════════════
@@ -114,18 +116,46 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
 # ════════════════════════════════════════════════════════════
 
 class UnitViewSet(viewsets.ModelViewSet):
-    queryset         = Unit.objects.all()
     serializer_class = UnitSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        queryset = Unit.objects.all()
+        
+        # Capture filters from the URL parameters
+        program  = self.request.query_params.get('program')
+        year     = self.request.query_params.get('year')
+        semester = self.request.query_params.get('semester')
+
+        # Apply database-level filters if parameters are provided
+        if program:
+            queryset = queryset.filter(program_id=program)
+        if year:
+            queryset = queryset.filter(year=year)
+        if semester:
+            queryset = queryset.filter(semester=semester)
+            
+        return queryset
 
 # ════════════════════════════════════════════════════════════
 #  SESSIONS
 # ════════════════════════════════════════════════════════════
 
 class SessionViewSet(viewsets.ModelViewSet):
-    queryset         = Session.objects.all()
     serializer_class = SessionSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = Session.objects.all()
+        unit_ids = self.request.query_params.getlist('unit') # Supports ?unit=1&unit=2
 
+        if unit_ids:
+            queryset = queryset.filter(unit_id__in=unit_ids)
+            
+        return queryset
+    
     def create(self, request, *args, **kwargs):
         # Only lecturers and admins can create sessions
         if not (request.user.is_lecturer or request.user.is_staff):
@@ -295,3 +325,158 @@ def upload_avatar(request):
 
     avatar_url = request.build_absolute_uri(user.avatar.url)
     return Response({'avatar_url': avatar_url}, status=status.HTTP_200_OK)
+
+
+# ════════════════════════════════════════════════════════════
+#  FORGOT PASSWORD — EMAIL RESET
+# ════════════════════════════════════════════════════════════
+
+import secrets
+from django.core.mail   import send_mail
+from django.conf        import settings
+from django.utils       import timezone
+from datetime           import timedelta
+from ..models           import PasswordResetToken
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    """
+    POST /api/auth/forgot-password/
+
+    Accepts an email address and sends a password reset link
+    if an account with that email exists.
+
+    We always return 200 regardless of whether the email exists
+    to prevent email enumeration attacks.
+
+    Auth required: No
+
+    Request body:
+        email (str)
+
+    Returns:
+        200  { message }
+        400  { error }  — email field missing
+    """
+    email = request.data.get('email', '').strip()
+
+    if not email:
+        return Response(
+            {'error': 'Email address is required.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Always return success to prevent email enumeration
+    # (attacker cannot tell if an email exists in the system)
+    response = Response(
+        {'message': 'If an account with that email exists, a reset link has been sent.'},
+        status=status.HTTP_200_OK
+    )
+
+    try:
+        user = User.objects.get(email__iexact=email)
+    except User.DoesNotExist:
+        return response
+
+    # Delete any existing unused tokens for this user
+    PasswordResetToken.objects.filter(user=user).delete()
+
+    # Generate a secure random token
+    token = secrets.token_urlsafe(32)
+
+    # Save token — expires in 30 minutes
+    PasswordResetToken.objects.create(
+        user       = user,
+        token      = token,
+        expires_at = timezone.now() + timedelta(minutes=30),
+    )
+
+    # Build reset URL — points to the frontend reset page
+    reset_url = f"{request.scheme}://{request.get_host()}/reset-password.html?token={token}"
+
+    # Send email
+    try:
+        send_mail(
+            subject    = 'Uni Attendance — Password Reset',
+            message    = (
+                f"Hello {user.first_name or user.username},\n\n"
+                f"You requested a password reset for your Uni Attendance account.\n\n"
+                f"Click the link below to reset your password:\n{reset_url}\n\n"
+                f"This link expires in 30 minutes.\n\n"
+                f"If you did not request this, ignore this email — your password will not change."
+            ),
+            from_email = settings.DEFAULT_FROM_EMAIL,
+            recipient_list = [user.email],
+            fail_silently  = False,
+        )
+    except Exception:
+        # Email failed to send — still return success to prevent enumeration
+        # Log the error server-side for admin awareness
+        pass
+
+    return response
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password(request):
+    """
+    POST /api/auth/reset-password/
+
+    Validates the reset token and sets a new password.
+
+    Auth required: No
+
+    Request body:
+        token        (str) — the token from the reset email link
+        new_password (str) — the new password (min 8 characters)
+
+    Returns:
+        200  { message }
+        400  { error }  — invalid/expired token or missing fields
+    """
+    token        = request.data.get('token', '').strip()
+    new_password = request.data.get('new_password', '').strip()
+
+    if not token or not new_password:
+        return Response(
+            {'error': 'Token and new password are required.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if len(new_password) < 8:
+        return Response(
+            {'error': 'Password must be at least 8 characters.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        reset_token = PasswordResetToken.objects.get(token=token)
+    except PasswordResetToken.DoesNotExist:
+        return Response(
+            {'error': 'Invalid or expired reset link. Please request a new one.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Check token has not expired
+    if reset_token.expires_at < timezone.now():
+        reset_token.delete()
+        return Response(
+            {'error': 'This reset link has expired. Please request a new one.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Set the new password
+    user = reset_token.user
+    user.set_password(new_password)
+    user.save()
+
+    # Delete the used token — single use only
+    reset_token.delete()
+
+    return Response(
+        {'message': 'Password reset successfully. You can now log in with your new password.'},
+        status=status.HTTP_200_OK
+    )

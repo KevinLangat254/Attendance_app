@@ -224,3 +224,21 @@ class WebAuthnChallenge(models.Model):
 
     def __str__(self):
         return f"Challenge for {self.user.username} at {self.created_at}"
+
+
+class PasswordResetToken(models.Model):
+    """
+    Stores a temporary token for password reset via email.
+    Each token is single-use and expires after 30 minutes.
+    """
+    user       = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='password_reset_tokens',
+    )
+    token      = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Reset token for {self.user.username} (expires {self.expires_at})"
