@@ -56,9 +56,10 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 
 
 class UnitSerializer(serializers.ModelSerializer):
+    lecturer_name = serializers.ReadOnlyField(source='lecturer.username')
     class Meta:
         model = Unit
-        fields = ["id", "name", "unit_code", "semester", "year","program", "lecturer"]
+        fields = ["id", "name", "unit_code", "semester", "year","program", "lecturer", "lecturer_name"]
 
     def validate_lecturer(self, user):
         if not user.is_lecturer:

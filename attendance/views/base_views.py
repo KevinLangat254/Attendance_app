@@ -85,11 +85,13 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        # OPTIMIZATION: select_related performs an SQL JOIN
+        queryset = Enrollment.objects.select_related('student', 'program').all()
         # Lecturers and admins see all enrollments
         if user.is_staff or user.is_lecturer:
-            return Enrollment.objects.all()
+            return queryset
         # Students only see their own enrollment
-        return Enrollment.objects.filter(student=user)
+        return queryset.filter(student=user)
 
     def update(self, request, *args, **kwargs):
         # Students can only modify their own enrollment; admins can modify any
@@ -121,7 +123,7 @@ class UnitViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Unit.objects.all()
+        queryset = Unit.objects.select_related('lecturer', 'program').all()
         
         # Capture filters from the URL parameters
         program  = self.request.query_params.get('program')
@@ -148,7 +150,14 @@ class SessionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        queryset = Session.objects.all()
+        user = self.request.user
+        queryset = Session.objects.select_related('unit').all()
+
+        # 1. If the user is a Lecturer (and not a superuser/admin)
+        if user.is_lecturer and not user.is_staff:
+            # Filter sessions where the related unit's lecturer is the current user
+            return queryset.filter(unit__lecturer=user)
+        
         unit_ids = self.request.query_params.getlist('unit') # Supports ?unit=1&unit=2
 
         if unit_ids:
@@ -197,11 +206,12 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        queryset = Attendance.objects.select_related('session__unit', 'student').all()
         # Lecturers and admins see all attendance records
         if user.is_staff or user.is_lecturer:
-            return Attendance.objects.all()
+            return queryset
         # Students only see their own records
-        return Attendance.objects.filter(student=user)
+        return queryset.filter(student=user)
 
     def update(self, request, *args, **kwargs):
         # Only lecturers and admins can modify attendance records
