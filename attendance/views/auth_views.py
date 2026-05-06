@@ -35,24 +35,43 @@ from ..models import User, WebAuthnCredential, WebAuthnChallenge
 RP_NAME = 'Uni Attendance'
 
 
+# def get_rp_config(request):
+#     """
+#     Dynamically derive RP_ID and RP_ORIGIN from the HTTP request.
+#     This ensures WebAuthn works on localhost, 127.0.0.1, ngrok, or
+#     any production domain without any manual code changes.
+
+#     RP_ID     = hostname only       e.g. localhost | abc.ngrok-free.app
+#     RP_ORIGIN = full origin URL     e.g. http://localhost:8000
+#     """
+#     origin = (
+#         request.META.get('HTTP_ORIGIN')
+#         or request.META.get('HTTP_REFERER', '').rstrip('/')
+#         or request.build_absolute_uri('/').rstrip('/')
+#     )
+#     parsed = urlparse(origin)
+#     rp_id  = parsed.hostname   # hostname only — no port, no scheme
+#     return rp_id, origin
+
+
 def get_rp_config(request):
-    """
-    Dynamically derive RP_ID and RP_ORIGIN from the HTTP request.
-    This ensures WebAuthn works on localhost, 127.0.0.1, ngrok, or
-    any production domain without any manual code changes.
+    # In production use env vars, in development derive from request
+    env_rp_id  = os.getenv('WEBAUTHN_RP_ID')
+    env_origin = os.getenv('WEBAUTHN_ORIGIN')
 
-    RP_ID     = hostname only       e.g. localhost | abc.ngrok-free.app
-    RP_ORIGIN = full origin URL     e.g. http://localhost:8000
-    """
-    origin = (
-        request.META.get('HTTP_ORIGIN')
-        or request.META.get('HTTP_REFERER', '').rstrip('/')
-        or request.build_absolute_uri('/').rstrip('/')
-    )
+    if env_rp_id and env_origin:
+        return env_rp_id, env_origin
+
+    # Development fallback — derive from request
+    origin = request.META.get('HTTP_ORIGIN')
+    if not origin:
+        scheme = 'https' if request.is_secure() else 'http'
+        host   = request.get_host()
+        origin = f"{scheme}://{host}"
+
     parsed = urlparse(origin)
-    rp_id  = parsed.hostname   # hostname only — no port, no scheme
+    rp_id  = parsed.hostname
     return rp_id, origin
-
 
 # ════════════════════════════════════════════════════════════
 #  REGISTRATION — STEP 1
