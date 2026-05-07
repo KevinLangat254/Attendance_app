@@ -1,10 +1,12 @@
+
+
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "python manage.py migrate && python -c \"import django; django.setup(); from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@mmu.ac.ke', 'mmu_password123')\" && python manage.py runscript seed_uni_units && python manage.py runscript seed_uni_data && gunicorn attendance_system.wsgi",
+    "startCommand": "python manage.py migrate && python manage.py collectstatic --noinput && python -c \"import os, django; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'attendance_system.settings'); django.setup(); from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@mmu.ac.ke', 'mmu_password123')\" && python manage.py runscript seed_uni_units && python manage.py runscript seed_uni_data && gunicorn attendance_system.wsgi",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
