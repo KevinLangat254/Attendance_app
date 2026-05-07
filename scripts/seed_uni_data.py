@@ -3,7 +3,7 @@ import django
 
 # --- Bootstrap Django before importing models ---
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "attendance_system.settings")
-django.setup()
+# django.setup()
 
 from attendance.models import Program
 
@@ -49,7 +49,7 @@ MMU_PROGRAMS = [
 ]
 
 
-def seed():
+def run():
     created_count = 0
     skipped_count = 0
 
@@ -74,4 +74,4 @@ def seed():
 
 if __name__ == "__main__":
     print("Seeding MMU programs...\n")
-    seed()
+    run()
