@@ -79,7 +79,8 @@ ROOT_URLCONF = 'attendance_system.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'frontend')],
+        # 'DIRS': [os.path.join(BASE_DIR, 'frontend')],
+        'DIRS': [BASE_DIR / 'frontend'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -165,7 +166,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
+FRONTEND_DIR = BASE_DIR / 'frontend'
 
 if os.path.exists(FRONTEND_DIR):
     STATICFILES_DIRS = [FRONTEND_DIR]
@@ -173,10 +174,10 @@ else:
     STATICFILES_DIRS = []
 
 STATIC_URL  = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL   = '/media/'
-MEDIA_ROOT  = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT  = BASE_DIR / 'media'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
