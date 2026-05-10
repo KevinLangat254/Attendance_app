@@ -71,6 +71,12 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 CSRF_COOKIE_SECURE   = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://uni-attendance.up.railway.app',
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') 
 # Allow all origins during development only
 # CORS_ALLOW_ALL_ORIGINS = True
 
