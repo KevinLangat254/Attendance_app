@@ -119,8 +119,8 @@ python manage.py migrate
 **6. Seed programme and unit data (optional)**
 
 ```bash
-python seed_mmu_data.py
-python seed_mmu_units.py
+python seed_uni_data.py
+python seed_uni_units.py
 ```
 
 **7. Start the server**
