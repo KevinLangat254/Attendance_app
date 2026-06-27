@@ -193,11 +193,11 @@
     const BASE_URL = window.location.origin + "/api";
 
     // ── Auto-redirect if already logged in ──
-    const existingToken  = localStorage.getItem('token');
+    const existingToken  = sessionStorage.getItem('token');
     const justRegistered = sessionStorage.getItem('justRegistered');
 
     if (existingToken && !justRegistered) {
-      const role = localStorage.getItem('role');
+      const role = sessionStorage.getItem('role');
       window.location.href = role === 'lecturer'
         ? '/dashboard/lecturer/dashboard.html'
         : '/dashboard/student/dashboard.html';
@@ -272,10 +272,10 @@
           return;
         }
 
-        // Step 4 — Save to localStorage
-        localStorage.setItem('token',    data.token);
-        localStorage.setItem('username', username);
-        localStorage.setItem('role',     role);
+        // Step 4 — Save to sessionStorage (clears when tab/browser is closed)
+        sessionStorage.setItem('token',    data.token);
+        sessionStorage.setItem('username', username);
+        sessionStorage.setItem('role',     role);
 
         // Step 5 — Redirect based on actual role from database
         window.location.href = role === 'lecturer'
@@ -343,7 +343,6 @@
         }
 
         // ── Step 2: Convert challenge and credentials to ArrayBuffer ──
-        // The browser's WebAuthn API requires ArrayBuffers, not strings
         const publicKeyOptions = {
           ...beginData,
           challenge: base64urlToBuffer(beginData.challenge),
@@ -354,7 +353,6 @@
         };
 
         // ── Step 3: Trigger the biometric prompt on the device ──
-        // This is where the fingerprint / face ID dialog appears
         const assertion = await navigator.credentials.get({
           publicKey: publicKeyOptions,
         });
@@ -386,10 +384,10 @@
           return;
         }
 
-        // ── Step 5: Save token and redirect ──
-        localStorage.setItem('token',    completeData.token);
-        localStorage.setItem('username', completeData.username);
-        localStorage.setItem('role',     completeData.is_lecturer ? 'lecturer' : 'student');
+        // ── Step 5: Save to sessionStorage and redirect ──
+        sessionStorage.setItem('token',    completeData.token);
+        sessionStorage.setItem('username', completeData.username);
+        sessionStorage.setItem('role',     completeData.is_lecturer ? 'lecturer' : 'student');
 
         window.location.href = completeData.is_lecturer
           ? '/dashboard/lecturer/dashboard.html'

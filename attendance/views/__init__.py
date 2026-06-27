@@ -15,10 +15,16 @@ from .base_views import (
     upload_avatar,
 )
 
+# from .attendance_views import (
+#     MarkAttendanceView,
+#     haversine,
+# )
+
 from .attendance_views import (
     MarkAttendanceView,
-    haversine,
+    
 )
+
 
 from .auth_views import (
     webauthn_register_begin,

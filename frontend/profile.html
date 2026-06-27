@@ -929,8 +929,8 @@
 
   <script>
     const BASE  = window.location.origin + '/api';
-    const token = localStorage.getItem('token');
-    const uname = localStorage.getItem('username') || '';
+    const token = sessionStorage.getItem('token');
+    const uname = sessionStorage.getItem('username') || '';
 
     if (!token) window.location.href = '/';
 

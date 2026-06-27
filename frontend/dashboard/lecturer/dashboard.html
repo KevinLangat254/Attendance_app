@@ -1530,8 +1530,8 @@
 
   <script>
     const BASE_URL = window.location.origin + "/api";
-    const token    = localStorage.getItem('token');
-    const username = localStorage.getItem('username') || 'Lecturer';
+    const token    = sessionStorage.getItem('token');
+    const username = sessionStorage.getItem('username') || 'Lecturer';
 
     // Auth guard
     if (!token) window.location.href = '/';
@@ -2203,7 +2203,7 @@
 
     // ── LOGOUT ──
     function logout() {
-      localStorage.clear();
+      sessionStorage.clear();
       window.location.href = '/';
     }
 

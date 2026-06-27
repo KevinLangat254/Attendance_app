@@ -12,21 +12,21 @@ from ..models import Session, Attendance
 #  HAVERSINE FORMULA
 # ════════════════════════════════════════════════════════════
 
-def haversine(lat1, lon1, lat2, lon2):
-    """
-    Calculate the straight-line distance in metres between two
-    GPS coordinates using the Haversine formula.
-    """
-    R    = 6371000  # Earth's mean radius in metres
-    phi1 = math.radians(lat1)
-    phi2 = math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlam = math.radians(lon2 - lon1)
+# def haversine(lat1, lon1, lat2, lon2):
+#     """
+#     Calculate the straight-line distance in metres between two
+#     GPS coordinates using the Haversine formula.
+#     """
+#     R    = 6371000  # Earth's mean radius in metres
+#     phi1 = math.radians(lat1)
+#     phi2 = math.radians(lat2)
+#     dphi = math.radians(lat2 - lat1)
+#     dlam = math.radians(lon2 - lon1)
 
-    a = (math.sin(dphi / 2) ** 2
-         + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2)
+#     a = (math.sin(dphi / 2) ** 2
+#          + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2)
 
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+#     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 # ════════════════════════════════════════════════════════════

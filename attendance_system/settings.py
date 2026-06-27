@@ -119,23 +119,23 @@ DEBUG = os.getenv('DEBUG') == 'True'
 
 # ...
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.getenv('DB_NAME'),
-#         'USER': os.getenv('DB_USER'),
-#         'PASSWORD': os.getenv('DB_PASSWORD'),
-#         'HOST': os.getenv('DB_HOST'),
-#         'PORT': os.getenv('DB_PORT'),
-#     }
-# }
-
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
-        conn_max_age=600,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
+    }
 }
+
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default=os.getenv('DATABASE_URL'),
+#         conn_max_age=600,
+#     )
+# }
 
 
 # Password validation
@@ -205,3 +205,14 @@ EMAIL_USE_TLS       = True
 EMAIL_HOST_USER     = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL  = os.getenv('EMAIL_HOST_USER')
+
+# 1. Expire the session cookie as soon as the user closes their browser
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# 2. Shorten the absolute cookie age (e.g., 30 minutes instead of 2 weeks)
+# 1800 seconds = 30 minutes
+SESSION_COOKIE_AGE = 1800  
+
+# 3. Save the session data on every single request so the 30-minute timer resets 
+# while the user is actively clicking around the app (sliding expiration)
+SESSION_SAVE_EVERY_REQUEST = True
