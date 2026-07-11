@@ -1178,7 +1178,7 @@
         : '/dashboard/student/dashboard.html';
     }
 
-    function logout() { localStorage.clear(); window.location.href = '/'; }
+    function logout() { sessionStorage.clear(); window.location.href = '/'; }
 
     // ── Toast ──
     function toast(type, title, msg) {
