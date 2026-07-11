@@ -1107,14 +1107,28 @@
       try {
         await api(`/users/${profile.id}/`, 'PATCH', { first_name: fn, last_name: ln, email: em });
         const full = `${fn} ${ln}`.trim();
-        document.getElementById('avatarName').textContent           = full;
-        document.getElementById('avatarInitial').textContent        = full.charAt(0).toUpperCase();
-        document.getElementById('qEmail').textContent               = em;
+        //document.getElementById('avatarName').textContent           = full;
+        //document.getElementById('avatarInitial').textContent        = full.charAt(0).toUpperCase();
+        //document.getElementById('qEmail').textContent               = em;
+
+        // 2. Safely update elements only if they exist in the DOM right now
+        const avatarName = document.getElementById('avatarName');
+        if (avatarName) avatarName.textContent = full;
+
+        //  FIX: Check if avatarInitial exists before trying to read/change its properties
+        const avatarInitial = document.getElementById('avatarInitial');
+        if (avatarInitial) {
+          avatarInitial.textContent = full.charAt(0).toUpperCase();
+        }
+
+        const qEmail = document.getElementById('qEmail');
+        if (qEmail) qEmail.textContent = em;
         toast('success', 'Saved', 'Your profile has been updated.');
       } catch (err) {
         const msg = err && Object.values(err)[0];
         toast('error', 'Failed', Array.isArray(msg) ? msg[0] : (msg || 'Could not save.'));
-      } finally {
+      } 
+      finally {
         btn.disabled = false;
         btn.innerHTML = `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Save Changes`;
       }

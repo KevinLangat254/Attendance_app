@@ -2,7 +2,7 @@ from rest_framework             import viewsets, status
 from rest_framework import permissions
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response    import Response
-from rest_framework.decorators  import api_view, permission_classes, parser_classes
+from rest_framework.decorators  import api_view, permission_classes, parser_classes, action
 from rest_framework.parsers     import MultiPartParser, FormParser
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -42,6 +42,11 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_serializer_context(self):
         # Pass request into serializer so avatar_url can build absolute URLs
         return {'request': self.request}
+    
+    # @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    # def me(self):
+    #     serializer = self.get_serializer(self.request.user)
+    #     return Response(serializer.data, status=status.HTTP_200_OK)
 
     def update(self, request, *args, **kwargs):
         # Users can only update their own profile; admins can update anyone
@@ -51,6 +56,8 @@ class UserViewSet(viewsets.ModelViewSet):
                 {'error': 'You can only update your own profile.'},
                 status=status.HTTP_403_FORBIDDEN
             )
+        
+        kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
