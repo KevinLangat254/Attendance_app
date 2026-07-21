@@ -6,5 +6,5 @@ db.sqlite3
 ngrok.exe
 locustfile.py
 test_rate_limit.py
+uni-attendance-key.pem
 QA_Bug_Report_Biometric_Attendance_v2.docx
-uni-attendance-key.pemQA_Bug_Report_Biometric_Attendance_v2.docx

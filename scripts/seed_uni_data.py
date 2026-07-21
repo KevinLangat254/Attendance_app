@@ -1,9 +1,15 @@
 import os
+import sys
 import django
 
-# --- Bootstrap Django before importing models ---
+# Add project root directory to sys.path so Python can find 'attendance'
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Set Django settings module
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "attendance_system.settings")
-# django.setup()
+
+# 1. UNCOMMENT THIS LINE to load models and apps
+django.setup()
 
 from attendance.models import Program
 
