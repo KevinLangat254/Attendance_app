@@ -1008,6 +1008,17 @@
     let currentSessionId = null;
     let currentCoords    = null;
     let markedSessions   = new Set();
+    let sessionTimer = null;
+
+    function startSessionAutoRefresh() {
+      // Clear any existing interval first to avoid duplicate background timers
+      if (sessionTimer) clearInterval(sessionTimer);
+
+      // Refresh sessions every 60 seconds (60,000 milliseconds)
+      sessionTimer = setInterval(() => {
+        loadSessions();
+      }, 60000);
+    }
 
     // ── INIT ──
     document.addEventListener('DOMContentLoaded', () => {
@@ -1016,6 +1027,8 @@
       setGreeting();
       loadAttendanceHistory().then(() => loadSessions());
       loadUnits();
+
+      startSessionAutoRefresh();
     });
 
     // ── USER INFO ──

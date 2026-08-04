@@ -71,6 +71,9 @@ class SessionSerializer(serializers.ModelSerializer):
     unit_name = serializers.SerializerMethodField()
     unit_code = serializers.SerializerMethodField()
 
+    start_time = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
+    end_time   = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
+
     class Meta:
         model  = Session
         fields = ['id', 'unit', 'start_time', 'end_time',
